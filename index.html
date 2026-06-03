@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+    <title>Baseball IQ</title>
+    <meta name="description" content="Learn situational baseball — what to do on every play. Built by Coach Mike." />
+
+    <!-- Theme + PWA -->
+    <meta name="theme-color" content="#1e3a8a" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- iOS: full-screen home-screen app -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Baseball IQ" />
+
+    <!-- Icons -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+
+    <!-- iOS launch image -->
+    <link rel="apple-touch-startup-image" href="/splash.png" />
+
+    <style>
+      html, body { margin: 0; height: 100%; background: #1e3a8a; }
+      /* Instant splash shown before React mounts; fades out once the app loads. */
+      #boot-splash {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: linear-gradient(160deg, #1e3a8a, #2563eb);
+        transition: opacity .4s ease; font-family: -apple-system, system-ui, sans-serif;
+      }
+      #boot-splash.hide { opacity: 0; pointer-events: none; }
+      #boot-splash img { width: 46%; max-width: 220px; animation: bob 2.2s ease-in-out infinite; }
+      #boot-splash .t { color: #fff; font-size: 30px; font-weight: 800; margin-top: 14px; letter-spacing: -0.5px; }
+      #boot-splash .s { color: #bfdbfe; font-size: 14px; font-weight: 600; margin-top: 24px; }
+      @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- Boot splash: visible immediately, removed by main.jsx after React mounts -->
+    <div id="boot-splash">
+      <img src="/icon-512.png" alt="Baseball IQ" />
+      <div class="t">Baseball IQ</div>
+      <div class="s">Loading…</div>
+    </div>
+
+    <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Register the offline service worker -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").catch(function () {});
+        });
+      }
+    </script>
+  </body>
+</html>
