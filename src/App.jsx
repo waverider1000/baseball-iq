@@ -43,7 +43,9 @@ function expandPositions(text) {
     .replace(/\b1B\b/g, "first baseman")
     .replace(/\bLF\b/g, "left fielder")
     .replace(/\bCF\b/g, "center fielder")
-    .replace(/\bRF\b/g, "right fielder");
+    .replace(/\bRF\b/g, "right fielder")
+    .replace(/\bP\b/g, "pitcher")
+    .replace(/\bC\b/g, "catcher");
 }
 
 // Midpoint between two positions (for cutoff visual placement)
@@ -477,11 +479,17 @@ const SHORTSTOP = [
     prompt:"Bases empty. A base hit goes to CENTER field. Where do you go?",
     why:"Be the CUTOFF for CF! Go out halfway and line up for the throw to second. 2B covers the bag.",
     hint:"Hits to LF or CF = SS is the cutoff." }),
-  SC({ position:"SS", difficulty:"hard", baseSit:"r12", mode:"throw", ballAt:"SS",
-    targets:["first","second","third","home"], correct:"second", variant:"hard",
+  SC({ position:"SS", difficulty:"hard", baseSit:"r12", mode:"throw", ballAt:"SS", variant:"hard",
+    mc:[
+      {label:"Throw to second base for the force", correct:true},
+      {label:"Throw to third for the lead runner", correct:true},
+      {label:"Throw home to the catcher", correct:false},
+    ],
+    noRehearse:true,
+    correct:["second","third"],
     prompt:"Runners on first AND second. Hard grounder to you. Where's the play?",
-    why:"Force at SECOND! Closest force, easy throw to 2B. Don't risk the long throw.",
-    hint:"Closest force = easiest out." }),
+    why:"Both work! Take the sure force at SECOND, or get the LEAD runner at THIRD if you have time. Just don't risk the throw home.",
+    hint:"Force at second OR the lead runner at third — both are good." }),
   SC({ position:"SS", difficulty:"hard", baseSit:"r13", mode:"throw", ballAt:"SS",
     targets:["first","second","third","home"], correct:"second", variant:"hard",
     prompt:"Runners on first AND third (less than 2 outs). Hard grounder to you. Where's the play?",
@@ -625,10 +633,10 @@ const CENTER_FIELD = [
     why:"Hit the SS cutoff! Don't make the long throw home — stop the batter from advancing.",
     hint:"Run is already in — stop other runners." }),
   SC({ position:"CF", difficulty:"hard", baseSit:"loaded", mode:"throw", ballAt:"CF",
-    targets:["first","second","third","home","SS"], correct:"third",
+    targets:["first","second","third","home","SS"], correct:"second",
     prompt:"Bases LOADED. A base hit to center. Where do you throw?",
-    why:"Throw to THIRD if you can get the lead runner! Otherwise hit SS cutoff.",
-    hint:"Get the lead runner." }),
+    why:"Throw to SECOND base — the closest force out! The batter forces the runner from first to second. Don't try the long throw home.",
+    hint:"Throw to 2nd — the closest force out." }),
 ];
 
 const RIGHT_FIELD = [
@@ -821,9 +829,9 @@ const RUNNER = [
     "Wait for the bat to hit the ball."),
   BR("easy","third",
     "You're on third base. A fly ball is hit to the outfield. What's your FIRST move?",
-    ["Take a few steps off the base and watch","Run home right away","Run back to second"], 0,
-    "Take a few steps off and WATCH. If it's caught, hurry back. If it drops, you can score!",
-    "Step off, watch the ball, then decide."),
+    ["Stay on third and tag up — then go home","Run home right away","Run back to second"], 0,
+    "Stay on third base and TAG UP! If the ball is caught in the air, go home right after the catch. If it's NOT caught, go home anyway. Either way — keep your foot on the bag until you know.",
+    "Tag up on the bag, then go home."),
 
   // ---------------- MEDIUM (reads & the halfway rule) ----------------
   BR("medium","second",
@@ -840,16 +848,6 @@ const RUNNER = [
      "Always stay on second"], 0,
     "Read it! The third baseman is right next to your base. If they field it cleanly, stay. If it gets by them or they throw to first, go to third.",
     "Watch the third baseman — don't run into a tag."),
-  BR("medium","first",
-    "You're running to second on a ground ball. The pitcher gets the ball, and you're MORE than halfway to second. What do you do?",
-    ["Keep going to second base","Run back to first base","Stop where you are"], 0,
-    "More than halfway? Keep going! The halfway rule says you can advance to the next base.",
-    "Past halfway = keep going to the next base."),
-  BR("medium","first",
-    "You're running to second on a ground ball. The pitcher gets the ball, and you're LESS than halfway. What do you do?",
-    ["Run back to first base","Keep running to second","Stay where you are"], 0,
-    "Less than halfway? Go back to first! The halfway rule says you must return to your last base.",
-    "Before halfway = return to your last base."),
   BR("medium","third",
     "You're on third. A fly ball is caught by the outfielder. You only took a few steps off. What do you do?",
     ["Hurry back to third base","Run home","Stay where you are"], 0,
@@ -903,11 +901,6 @@ const RUNNER = [
     ["Advance to third — the ball went away from you","Stay on second","Run home"], 0,
     "The ball and the throw went toward first, away from third. Take third base!",
     "Ball thrown to first = third base is open, take it."),
-  BR("hard","first",
-    "Two overthrows happen on the same play (ball still live). You started on first. How far can you go?",
-    ["Up to two bases — to third","Only one base","All the way home"], 0,
-    "Two overthrows = up to two bases. From first, that gets you to third!",
-    "One base per overthrow — two overthrows means two bases."),
   BR("hard","second",
     "You're on second, no force. A line drive is caught by the shortstop. You had taken a few steps off. What do you do?",
     ["Hurry back to second base","Run to third","Run home"], 0,
@@ -916,9 +909,9 @@ const RUNNER = [
   BR("hard","third",
     "Runners on first and third. Ground ball to the shortstop, who throws to first for the out. You're on third. Should you score?",
     ["Only if you're sure it's safe — you're not forced",
-     "Always run home","Never leave third"], 0,
-    "You're not forced (first base will be open after the out). Score only if it's safe — read the play.",
-    "Not forced — only go home if it's clearly safe."),
+     "Always run home","Never leave third"], 1,
+    "The shortstop threw to FIRST, not home — so home plate is wide open. Break for home and SCORE! When the defense takes the easy out at first, the runner on third comes in to score.",
+    "They threw to first — home is open. GO!"),
   BR("hard","first",
     "Bases loaded, less than two outs. A ground ball is hit. You're on first. What do you do?",
     ["Run hard to second — you're forced","Wait to see if it's caught","Go back to first"], 0,
@@ -937,9 +930,6 @@ const SUPPLEMENT = [
   // EASY (need +7)
   T("P","easy","empty","P","first","Bases empty. A SLOW roller dribbles back to the mound. Where do you throw?","Soft hit, bases empty — easy out at FIRST. Don't rush!","No runners, no pressure — just get the batter.","soft"),
   T("P","easy","empty","P","first","Bases empty. A grounder comes RIGHT at you. Where do you throw?","Bases empty = always first base. Get the easy out!","Where's the batter going?"),
-  CV("P","easy","empty","2B","P","first","Bases empty. The second baseman fields a grounder. Where do you (pitcher) go?","Pitcher does NOT cover for 2B grounders. STAY on the mound, ready to receive the ball after the play.","2B handles their own throw to 1st — you don't need to move.", ["first","second","P","home"]),
-  CV("P","easy","empty","SS","P","first","Bases empty. The shortstop fields a grounder. Where do you go?","SS throws to 1B — pitcher does NOT cover. Stay on mound and be ready for the ball after the out.","Only cover 1st when the FIRST BASEMAN fields it.", ["first","second","P","home"]),
-  CV("P","easy","empty","3B","P","first","Bases empty. The third baseman fields a grounder. Where do you go?","3B throws to 1B — pitcher does NOT cover 1st. Stay on mound.","Only cover 1st when 1B fields the ball.", ["first","second","P","home"]),
   T("P","easy","empty","P","first","Bases empty. The ball comes back to you on a HOP. Where do you throw?","Bases empty = first base, every time. Easy out!","Always the same answer with bases empty."),
   T("P","easy","empty","P","first","Bases empty. A grounder rolls slowly to the mound. Where do you throw?","Slow grounder, bases empty — sure out at FIRST!","Slow or fast, bases empty means first base.","soft"),
 
@@ -1048,7 +1038,7 @@ const SUPPLEMENT = [
   // MEDIUM (need +5)
   CV("2B","medium","r2","SS","2B","second","Runner on second. SS fields a grounder. Where do you go?","Cover SECOND! Watch the runner from 2nd — if they take too big a turn, SS could TAG them.","Runner on 2nd is the threat — be there."),
   CV("2B","medium","r3","SS","2B","first","Runner on third. SS fields a grounder. Where do you go?","BACK UP FIRST! SS throws to 1B for the sure out. Concede the run from 3rd.","Back up first — sure out coming."),
-  CV("2B","medium","r2","3B","2B","first","Runner on second. 3B fields a grounder. Where do you go?","BACK UP FIRST! The 3B throws to 1B for the sure out. Since the ball is on the left side, you also cover 2nd if a play develops there.","Back up first base."),
+  CV("2B","medium","r2","3B","2B","second","Runner on second. 3B fields a grounder. Where do you go?","Cover SECOND base! Watch the runner on 2nd — if they come off the bag too far, the third baseman can throw to you for the tag or force.","Cover 2nd — watch that runner.",["second","first","third","P"]),
   T("2B","medium","r3","2B","first","Runner on third. Grounder to you. Where do you throw?","FIRST base — sure out. Concede the run from 3rd.","Sure out at first."),
   CV("2B","medium","r2","P","2B","first","Runner on second. P fields a comebacker. Where do you go?","BACK UP FIRST. (SS handles the runner from 2nd.)","Default: back up first."),
 
@@ -1201,7 +1191,7 @@ const SUPPLEMENT = [
     "Hit the cutoff, stop the batter."),
   T("LF","medium","r3","LF","SS","Runner on third. A base hit drops in front of you. Where do you throw?","Hit the SS CUTOFF! Run is already in — stop the batter from advancing.","Run is in — stop the batter."),
   CV("LF","medium","r1","SS","LF","second","Runner on first. SS fields a grounder. Where do you go?","Back up the throw to SECOND! Force play — be there in case it goes past.","Back up the throw to 2nd."),
-  CV("LF","medium","r1","3B","LF","second","Runner on first. 3B fields a grounder. Where do you go?","Back up the throw to SECOND. 3B will throw to 2nd for the force.","Back up the throw to 2nd."),
+  CV("LF","medium","r1","3B","LF","3B","Runner on first. 3B fields a grounder. Where do you go?","Back up the 3B in case the ball gets past! You're right behind them on the left side.","Back up the 3B."),
   CV("LF","medium","r1","CF","LF","CF","Runner on first. A hit goes to CENTER field. Where do you go?","Back up CF! Both fielder AND throw.","Back up CF.",["LF","CF","RF","SS"]),
   CV("LF","medium","r2","SS","LF","third","Runner on second. SS fields a grounder. Where do you go?","Back up the throw to 3rd! If SS throws to 3rd to try to get the runner, you're there.","Back up the throw to 3rd."),
   T("LF","medium","r1","LF","second","Runner on first. A soft fly drops in front of you. Where do you throw?","SECOND base for the FORCE on the runner from 1st!","Force the lead runner.","soft"),
@@ -1209,9 +1199,9 @@ const SUPPLEMENT = [
 
   // HARD (need +7)
   T("LF","hard","r23","LF","SS","Runners on 2nd AND 3rd. Base hit to you. Where do you throw?","Hit the SS CUTOFF! Both runs probably scoring — stop the batter from advancing.","Stop the batter."),
-  T("LF","hard","loaded","LF",["third","second","SS"],"Bases loaded. A base hit to you. Where do you throw?","Throw to THIRD if you think you can get the runner from second base. Or throw to SECOND for the force on the runner from first. If neither throw will beat the runner, hit the shortstop cutoff!","Try to get the lead runner if you can — otherwise hit the cutoff."),
+  T("LF","hard","loaded","LF",["second","third"],"Bases loaded. A base hit to you. Where do you throw?","Throw to SECOND for the force on the runner from first, or to THIRD for the force on the runner from second. Either way, get the force out — don't try the long throw home.","Second or third — take the force out."),
   CV("LF","hard","r12","SS","LF","third","Runners on 1st AND 2nd. SS fields a grounder. Where do you go?","Back up the throw to 3rd! Force on the runner from 2nd.","Back up the throw to 3rd."),
-  CV("LF","hard","r12","3B","LF","third","Runners on 1st AND 2nd. 3B fields a grounder. Where do you go?","Back up 3rd base! 3B steps on the bag for the force — be there in case.","Back up third."),
+  CV("LF","hard","r12","3B","LF","3B","Runners on 1st AND 2nd. 3B fields a grounder. Where do you go?","Back up the 3B in case the ball gets past them! You're right behind them on the left side.","Back up the 3B."),
   CV("LF","hard","loaded","SS","LF","third","Bases LOADED. SS fields a grounder. Where do you go?","Back up the throw to 3rd or 2nd! SS may force at 2nd or throw to 3rd.","Back up the force throw."),
   SC({ position:"LF", difficulty:"hard", baseSit:"r13", mode:"cover", ballAt:"SS", you:"LF",
     correct:"SS",
@@ -1271,7 +1261,7 @@ const SUPPLEMENT = [
 
   // HARD (need +7)
   T("RF","hard","r23","RF","2B","Runners on 2nd AND 3rd. Base hit to you. Where do you throw?","Hit the 2B CUTOFF! Runs scoring — stop the batter.","Cutoff."),
-  T("RF","hard","loaded","RF","third","Bases LOADED. Base hit to you. Where do you throw?","Throw to THIRD if you can get the lead runner — else 2B cutoff!","Get the lead runner."),
+  T("RF","hard","loaded","RF",["second","first"],"Bases LOADED. Base hit to you. Where do you throw?","Throw to SECOND for the force on the runner from first — or to FIRST to get the batter. Either one is an out. Don't try the long throw home.","Second or first — take the out."),
   CV("RF","hard","r12","SS","RF","first","Runners on 1st AND 2nd. SS fields a grounder. Where do you go?","Back up FIRST!","Back up first."),
   CV("RF","hard","loaded","SS","RF","first","Bases LOADED. SS fields a grounder. Where do you go?","Back up FIRST!","Back up first."),
   CV("RF","hard","loaded","2B","RF","first","Bases LOADED. 2B fields a grounder. Where do you go?","Back up FIRST! Or back up the throw home if 2B goes home.","Back up first."),
@@ -1578,6 +1568,7 @@ export default function App() {
   const [phase, setPhase] = useState("ask"); // ask | move | reveal | rehearse | rehearseMove | done
   const [result, setResult] = useState(null);
   const [chosen, setChosen] = useState(null);
+  const [armed, setArmed] = useState(null); // pending answer (tapped but not committed via the action button)
   const [attempts, setAttempts] = useState(0);
   const [stars, setStars] = useState(0);
   const [progress, setProgress] = useState({});
@@ -1586,6 +1577,15 @@ export default function App() {
   const [badges, setBadges] = useState({});          // { [position]: true } when mastered
   const [cleared, setCleared] = useState({});        // { [position-difficulty]: true }
   const [rewardPopup, setRewardPopup] = useState(null); // { type, title, sub, emoji } | null
+  // ----- Bonus & lightning rounds -----
+  const [bonusStars, setBonusStars] = useState(0);      // extra stars this round (surprise + lightning)
+  const [bonusPopup, setBonusPopup] = useState(null);   // brief mid-game "BONUS!" celebration | null
+  const [cutaway, setCutaway] = useState(null);         // { phrase } action overlay on correct answers | null
+  // ----- Coach Mode: custom questions (stored on-device, free) -----
+  const [customScenarios, setCustomScenarios] = useState([]); // array of custom MC scenario objects
+  const [editorDraft, setEditorDraft] = useState(null);       // the question being created/edited, or null (list view)
+  const [lightning, setLightning] = useState(false);    // true while a lightning round is active
+  const [combo, setCombo] = useState(0);                // lightning streak counter
   const rewardsLoaded = useRef(false);
   const [soundOn, setSoundOn] = useState(true);
   const [movePos, setMovePos] = useState({ x: 200, y: 200 }); // legacy, used by rehearse phase
@@ -1596,6 +1596,10 @@ export default function App() {
   const [batSwing, setBatSwing] = useState(0); // increment to retrigger
   const [availableVoices, setAvailableVoices] = useState([]);
   const [selectedVoiceName, setSelectedVoiceName] = useState(null);
+  // PWA install: captured beforeinstallprompt event (Android/Chrome) + platform flags
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [showIosHint, setShowIosHint] = useState(false);
   // Swipe-back review: when not null, we're viewing a previously answered
   // question read-only at this index. Null = live on the current question.
   const [reviewIdx, setReviewIdx] = useState(null);
@@ -1607,7 +1611,7 @@ export default function App() {
 
   const needsRehearse = needsRehearseForSc;
 
-  // ----- Persist rewards on-device (survives between sessions) -----
+  // ----- Persist rewards + custom questions on-device (survives between sessions) -----
   // Works in two environments:
   //  • Claude app artifact   -> uses window.storage (async key/value API)
   //  • Web / Vercel deploy    -> falls back to localStorage
@@ -1653,6 +1657,7 @@ export default function App() {
           setBadges(data.badges || {});
           setCleared(data.cleared || {});
           setProgress(data.progress || {});
+          setCustomScenarios(Array.isArray(data.custom) ? data.custom : []);
         }
       } finally {
         rewardsLoaded.current = true;
@@ -1662,14 +1667,14 @@ export default function App() {
     // eslint-disable-next-line
   }, []);
 
-  // Save whenever rewards change (after the initial load).
   useEffect(() => {
     if (!rewardsLoaded.current) return;
-    saveRewards({ totalStars, badges, cleared, progress });
+    saveRewards({ totalStars, badges, cleared, progress, custom: customScenarios });
     // eslint-disable-next-line
-  }, [totalStars, badges, cleared, progress]);
+  }, [totalStars, badges, cleared, progress, customScenarios]);
 
   const soundRef = useRef(soundOn); soundRef.current = soundOn;
+  const ambienceRef = useRef(null); // holds the looping stadium-murmur source while batting
   const audioRef = useRef(null);
   const voiceRef = useRef(null);
   const sc = queue[idx];
@@ -1680,8 +1685,10 @@ export default function App() {
     const s = window.speechSynthesis;
     if (!s) return;
 
-    // Preference order: smooth, natural, child-friendly voices first.
+    // Preference order: Daniel first (coach's pick), then other smooth, natural voices.
     const PREFERRED = [
+      "Daniel",
+      "Daniel (English (United Kingdom))",
       "Google US English",
       "Microsoft Aria Online (Natural) - English (United States)",
       "Microsoft Jenny Online (Natural) - English (United States)",
@@ -1732,6 +1739,44 @@ export default function App() {
     return () => s.removeEventListener("voiceschanged", pickVoice);
   }, []);
 
+  // ---- PWA INSTALL ----
+  // Android/Chrome fires beforeinstallprompt — capture it so we can show our own
+  // big "Install App" button instead of relying on the browser's hidden menu.
+  // iOS Safari never fires it, so we detect iOS and show an "Add to Home Screen" hint.
+  useEffect(() => {
+    const onBIP = (e) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener("beforeinstallprompt", onBIP);
+
+    const onInstalled = () => { setInstallPrompt(null); };
+    window.addEventListener("appinstalled", onInstalled);
+
+    // Already installed / running as an app?
+    const standalone =
+      window.matchMedia && window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
+    setIsStandalone(!!standalone);
+
+    // iOS Safari detection (so we can show the manual hint)
+    const ua = window.navigator.userAgent || "";
+    const isIos = /iphone|ipad|ipod/i.test(ua);
+    const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
+    if (isIos && isSafari && !standalone) setShowIosHint(true);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBIP);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  const doInstall = async () => {
+    if (!installPrompt) return;
+    try {
+      installPrompt.prompt();
+      await installPrompt.userChoice;
+    } catch (e) {}
+    setInstallPrompt(null);
+  };
+
   // Choose a specific voice by name (from settings screen)
   const chooseVoice = (name) => {
     const v = availableVoices.find((x) => x.name === name);
@@ -1745,7 +1790,7 @@ export default function App() {
       s.cancel();
       const u = new SpeechSynthesisUtterance("Hi there, Dragons! Ready to play some baseball?");
       u.voice = v; u.lang = v.lang || "en-US";
-      u.rate = 0.95; u.pitch = 1.05; u.volume = 1;
+      u.rate = 1.04; u.pitch = 1.28; u.volume = 1;
       s.speak(u);
     } catch (e) {}
   };
@@ -1808,6 +1853,95 @@ export default function App() {
     tone(880, 0.05, 0.22, "triangle", 0.16);
     tone(1175, 0.12, 0.30, "triangle", 0.16);
   };
+  // Sparkly bonus — quick rising arpeggio with a shimmer on top
+  const sfxBonus = () => {
+    [784, 988, 1175, 1568].forEach((f, i) => tone(f, i * 0.06, 0.14, "triangle", 0.15));
+    tone(2093, 0.24, 0.18, "sine", 0.10);
+  };
+  // Swing whoosh — quick filtered noise sweep
+  const sfxWhoosh = () => {
+    if (!soundRef.current) return;
+    const ctx = getCtx(); if (!ctx) return;
+    try {
+      const dur = 0.18;
+      const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const bp = ctx.createBiquadFilter(); bp.type = "bandpass";
+      bp.frequency.setValueAtTime(800, ctx.currentTime);
+      bp.frequency.exponentialRampToValueAtTime(3000, ctx.currentTime + dur);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.18, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+      src.connect(bp); bp.connect(g); g.connect(ctx.destination);
+      src.start();
+    } catch (e) {}
+  };
+  // Crowd roar — a swell of filtered noise that rises and fades (stadium cheer).
+  // intensity scales the loudness (1 = default; >1 louder, <1 softer).
+  const crowdRoar = (intensity = 1) => {
+    if (!soundRef.current) return;
+    const ctx = getCtx(); if (!ctx) return;
+    try {
+      const dur = 2.2;
+      const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1100;
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 300;
+      const g = ctx.createGain();
+      const t = ctx.currentTime;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.22 * intensity, t + 0.35);   // swell up
+      g.gain.linearRampToValueAtTime(0.20 * intensity, t + 1.4);     // sustain
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur); // fade
+      src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(ctx.destination);
+      src.start();
+      // A few whistle/cheer tones riding on top
+      [1568, 1760, 2093].forEach((f, i) => tone(f, 0.2 + i * 0.15, 0.5, "sine", 0.05 * intensity));
+    } catch (e) {}
+  };
+
+  // Ambient stadium murmur — a steady, low bed of looping filtered noise that
+  // plays the whole time the batting game is on screen. Faded in/out gently.
+  const startCrowdAmbience = () => {
+    if (!soundRef.current) return;
+    const ctx = getCtx(); if (!ctx) return;
+    if (ambienceRef.current) return; // already running
+    try {
+      const dur = 3;
+      const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+      const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 850;
+      const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 220;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.8); // gentle fade in
+      src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(ctx.destination);
+      src.start();
+      ambienceRef.current = { src, g };
+    } catch (e) {}
+  };
+  const stopCrowdAmbience = () => {
+    const a = ambienceRef.current;
+    ambienceRef.current = null;
+    if (!a) return;
+    const ctx = getCtx();
+    try {
+      if (ctx) {
+        a.g.gain.cancelScheduledValues(ctx.currentTime);
+        a.g.gain.setValueAtTime(a.g.gain.value, ctx.currentTime);
+        a.g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.3); // fade out
+        a.src.stop(ctx.currentTime + 0.35);
+      } else {
+        a.src.stop();
+      }
+    } catch (e) {}
+  };
 
   const speak = (text) => {
     if (!soundRef.current) return;
@@ -1821,9 +1955,10 @@ export default function App() {
       } else {
         u.lang = "en-US";
       }
-      // Tuned for kids: slightly slower than normal, natural pitch, full volume
-      u.rate = 0.95;
-      u.pitch = 1.05;
+      // Energetic & kid-friendly: lively pace and a brighter, upbeat pitch so
+      // Coach Bruce sounds enthusiastic rather than flat/robotic.
+      u.rate = 1.04;
+      u.pitch = 1.28;
       u.volume = 1;
       s.speak(u);
     } catch (e) {}
@@ -1839,12 +1974,12 @@ export default function App() {
     const ms = Math.round((chars / 13) * 1000);
     return Math.min(9000, Math.max(2200, ms));
   };
-  const rehearseDelay = (sc) => estimateSpeechMs(`Yes! ${sc.why}`) + 500;
+  const rehearseDelay = (sc) => Math.round((estimateSpeechMs(`Yes! ${sc.why}`) + 500) * 0.65);
 
   // ---- SCENARIO LIFECYCLE ----
   useEffect(() => {
     if (screen !== "play" || !sc) return;
-    setPhase("ask"); setResult(null); setChosen(null); setAttempts(0);
+    setPhase("ask"); setResult(null); setChosen(null); setArmed(null); setAttempts(0); setCutaway(null);
     setPuff(null); setPitcherRun(null);
 
     // Animate a HIT from home plate to wherever the ball is going
@@ -1886,6 +2021,35 @@ export default function App() {
   }, [screen, idx, queue]);
 
   // ---- CHOICE HANDLER ----
+  // The big action button's label depends on what the player is doing.
+  const actionLabel = (s) => {
+    if (!s) return "⚾ GO!";
+    if (s.position === "P") return "⚾ THROW!";
+    if (s.position === "RUNNER") return "🏃 GO!";
+    if (s.mode === "popup") return "📣 CALL IT!";
+    return "💪 THROW!";
+  };
+
+  // Tapping a target ARMS it (highlights, doesn't commit). The big SWING/PITCH
+  // button then commits via choose(). During the rehearse step (tap the ball /
+  // pitcher to stop the play), taps pass straight through — no arming.
+  const armOrChoose = (key) => {
+    if (phase === "rehearse") { choose(key); return; }
+    if (phase !== "ask") return;
+    sfxClick();
+    setArmed(key);
+  };
+
+  const commitArmed = () => {
+    if (phase !== "ask") return;
+    if (armed === null || armed === undefined) {
+      sfxWrong();
+      speak("Pick your play first!");
+      return;
+    }
+    choose(armed);
+  };
+
   const choose = (key) => {
     if (phase !== "ask" && phase !== "rehearse") return;
     sfxClick();
@@ -1945,6 +2109,8 @@ export default function App() {
       setTimeout(() => {
         if (isCorrect) {
           if (firstTryMC) setStars((s) => s + 1);
+          awardBonus(sc, firstTryMC);
+          fireCutaway();
           sfxOut();
           speak(`Yes! ${sc.why}`);
           setResult("correct");
@@ -1961,6 +2127,7 @@ export default function App() {
           }
         } else {
           setAttempts((a) => a + 1);
+          if (lightning) setCombo(0);
           sfxWrong();
           speak(`Not quite. ${sc.hint}`);
           setResult("wrong");
@@ -1990,6 +2157,8 @@ export default function App() {
       }
       if (isCorrectKey(key)) {
         if (firstTry) setStars((s) => s + 1);
+        awardBonus(sc, firstTry);
+        fireCutaway();
         sfxOut();
         speak(`Yes! ${sc.why}`);
         setResult("correct");
@@ -2006,6 +2175,7 @@ export default function App() {
         }
       } else {
         setAttempts((a) => a + 1);
+        if (lightning) setCombo(0);
         sfxWrong();
         speak(`Not quite. ${sc.hint}`);
         setResult("wrong");
@@ -2016,7 +2186,7 @@ export default function App() {
 
   const tryAgain = () => {
     sfxClick();
-    setResult(null); setChosen(null); setPhase("ask");
+    setResult(null); setChosen(null); setArmed(null); setPhase("ask");
     setPuff(null);
     if (sc.mode !== "popup") {
       // Re-animate the hit
@@ -2037,13 +2207,35 @@ export default function App() {
       setIdx((i) => i + 1);
     } else {
       stopSpeak();
-      const total = queue.length;
+
+      // ----- Coach preview finish: just return to the editor -----
+      if (difficulty === "custom") {
+        setScreen("coach");
+        return;
+      }
+
+      // ----- Lightning round finish: pure bonus, no mastery/progress -----
+      if (lightning) {
+        const prevTotal = totalStars;
+        const newTotal = prevTotal + bonusStars;
+        setTotalStars(newTotal);
+        const prevRank = rankForStars(prevTotal);
+        const newRank = rankForStars(newTotal);
+        if (newRank.name !== prevRank.name) {
+          setRewardPopup({ type: "rank", emoji: newRank.emoji,
+            title: `New Rank: ${newRank.name}!`, sub: `You've earned ${newTotal} stars.` });
+        }
+        setTimeout(sfxCheer, 200);
+        setScreen("done");
+        return;
+      }
+
       const key = `${position}-${difficulty}`;
       setProgress((p) => ({ ...p, [key]: Math.max(p[key] || 0, stars) }));
 
-      // ----- Award rewards -----
+      // ----- Award rewards (normal round): first-try stars + any bonus stars -----
       const prevTotal = totalStars;
-      const newTotal = prevTotal + stars;
+      const newTotal = prevTotal + stars + bonusStars;
       setTotalStars(newTotal);
 
       const rewards = []; // queued celebrations
@@ -2072,12 +2264,13 @@ export default function App() {
       if (rewards.length > 0) setRewardPopup(rewards[0]);
 
       setTimeout(sfxCheer, 200);
-      setScreen("done");
+      // Reward: step up to bat before seeing results.
+      setScreen("batting");
     }
   };
 
-  const goHome = () => { stopSpeak(); setRewardPopup(null); setPosition(null); setDifficulty(null); setScreen("home"); setTimeout(() => playJingle(), 250); };
-  const goBack = () => { stopSpeak(); setRewardPopup(null); setDifficulty(null); setScreen("difficulty"); };
+  const goHome = () => { stopSpeak(); setRewardPopup(null); setBonusPopup(null); setCutaway(null); setLightning(false); setCombo(0); setPosition(null); setDifficulty(null); setScreen("home"); setTimeout(() => playJingle(), 250); };
+  const goBack = () => { stopSpeak(); setRewardPopup(null); setBonusPopup(null); setCutaway(null); setLightning(false); setCombo(0); setDifficulty(null); setScreen("difficulty"); };
 
   // ---- Swipe-back review navigation ----
   // Step back to review a previously answered question (read-only).
@@ -2117,7 +2310,7 @@ export default function App() {
   const pickDifficulty = (d) => {
     sfxClick();
     setDifficulty(d);
-    const all = SCENARIOS[position] || [];
+    const all = [...(SCENARIOS[position] || []), ...customScenarios.filter((s) => s.position === position)];
 
     // Classify each scenario by how many runners are on base.
     const ONE = new Set(["r1", "r2", "r3"]);
@@ -2163,10 +2356,127 @@ export default function App() {
       const mc = generateMCOptions(s);
       return mc ? { ...s, mc } : s;
     });
+    // Surprise! Mark one random play (never the first) as a BONUS play worth double stars.
+    if (q.length >= 3) {
+      const bonusIdx = 1 + Math.floor(Math.random() * (q.length - 1));
+      q[bonusIdx] = { ...q[bonusIdx], bonus: true };
+    }
     setQueue(q); setIdx(0); setStars(0);
     setReviewIdx(null);
     setRewardPopup(null);
+    setBonusPopup(null); setBonusStars(0); setLightning(false); setCombo(0);
     setScreen("play");
+  };
+
+  // ⚡ LIGHTNING ROUND — a quick rapid-fire set of bonus questions for the
+  // current position. Every correct answer earns a bonus star and builds a combo.
+  const startLightning = () => {
+    sfxClick();
+    const all = [...(SCENARIOS[position] || []), ...customScenarios.filter((s) => s.position === position)];
+    const shuffled = [...all].sort(() => Math.random() - 0.5).slice(0, 6);
+    const q = shuffled.map((s) => {
+      const mc = generateMCOptions(s);
+      const base = mc ? { ...s, mc } : { ...s };
+      // Lightning plays are quick: no "give it to the pitcher" rehearse step.
+      return { ...base, lightning: true, noRehearse: true };
+    });
+    setQueue(q); setIdx(0); setStars(0);
+    setReviewIdx(null); setRewardPopup(null); setBonusPopup(null);
+    setBonusStars(0); setCombo(0);
+    setLightning(true);
+    setScreen("play");
+  };
+
+  // ----- Coach Mode helpers -----
+  const SITUATION_MAP = { empty: { difficulty: "easy", baseSit: "empty" },
+                          one: { difficulty: "medium", baseSit: "r1" },
+                          multi: { difficulty: "hard", baseSit: "r12" } };
+  const blankDraft = () => ({
+    id: null, position: "SS", situation: "one", prompt: "",
+    options: [{ text: "", correct: false }, { text: "", correct: false }, { text: "", correct: false }],
+    why: "", hint: "",
+  });
+  const draftToScenario = (d) => {
+    const map = SITUATION_MAP[d.situation] || SITUATION_MAP.one;
+    const opts = d.options.filter((o) => o.text.trim());
+    return {
+      id: d.id || `custom-${Date.now()}`,
+      custom: true,
+      position: d.position,
+      difficulty: map.difficulty,
+      baseSit: map.baseSit,
+      mode: "throw",
+      ballAt: d.position,
+      noRehearse: true,
+      correct: [],
+      prompt: d.prompt.trim(),
+      why: d.why.trim() || "Nice thinking!",
+      hint: d.hint.trim() || "Think it through and try again.",
+      mc: opts.map((o) => ({ label: o.text.trim(), correct: !!o.correct })),
+    };
+  };
+  const draftValid = (d) => {
+    const opts = d.options.filter((o) => o.text.trim());
+    return d.prompt.trim() && opts.length >= 2 && opts.some((o) => o.correct);
+  };
+  const saveDraft = () => {
+    if (!editorDraft || !draftValid(editorDraft)) return;
+    sfxClick();
+    const sc = draftToScenario(editorDraft);
+    setCustomScenarios((list) => {
+      const exists = list.some((s) => s.id === sc.id);
+      return exists ? list.map((s) => (s.id === sc.id ? sc : s)) : [...list, sc];
+    });
+    setEditorDraft(null);
+  };
+  const deleteCustom = (id) => {
+    sfxClick();
+    setCustomScenarios((list) => list.filter((s) => s.id !== id));
+  };
+  const editCustom = (sc) => {
+    // Convert a saved scenario back into an editable draft
+    const sit = sc.baseSit === "empty" ? "empty" : (sc.baseSit === "r1" ? "one" : "multi");
+    setEditorDraft({
+      id: sc.id, position: sc.position, situation: sit, prompt: sc.prompt,
+      options: (sc.mc || []).map((m) => ({ text: m.label, correct: !!m.correct })),
+      why: sc.why || "", hint: sc.hint || "",
+    });
+  };
+  // Play a round of ONLY the coach's custom questions for a position.
+  const startCustomPreview = (pos) => {
+    sfxClick();
+    const mine = customScenarios.filter((s) => s.position === pos);
+    if (mine.length === 0) return;
+    const q = [...mine].sort(() => Math.random() - 0.5);
+    setPosition(pos); setDifficulty("custom");
+    setQueue(q); setIdx(0); setStars(0);
+    setReviewIdx(null); setRewardPopup(null); setBonusPopup(null);
+    setBonusStars(0); setCombo(0); setLightning(false);
+    setScreen("play");
+  };
+
+  // Award bonus stars on a correct answer (surprise bonus play, or any
+  // correct answer during a lightning round). Returns nothing; updates state.
+  // Brief MLB-style action cutaway shown on every correct answer (~1.2s overlay).
+  const CUT_PHRASES = ["GREAT PLAY!", "DIALED IN!", "LOCKED IN!", "YOU'RE AWESOME!", "SMART PLAY!", "BASEBALL GENIUS!", "WAY TO GO!"];
+  const fireCutaway = () => {
+    const phrase = CUT_PHRASES[Math.floor(Math.random() * CUT_PHRASES.length)];
+    setCutaway({ phrase });
+    sfxWhoosh();
+    setTimeout(() => setCutaway(null), 1250);
+  };
+
+  const awardBonus = (s, firstTry) => {
+    if (lightning) {
+      setBonusStars((b) => b + 1);
+      setCombo((c) => c + 1);
+      sfxBonus();
+    } else if (s.bonus && firstTry) {
+      setBonusStars((b) => b + 1); // +1 on top of the normal star = double
+      sfxBonus();
+      setBonusPopup({ emoji: "⭐", title: "BONUS PLAY!", sub: "Double stars!" });
+      setTimeout(() => setBonusPopup(null), 1700);
+    }
   };
 
   // ============================================================
@@ -2272,12 +2582,12 @@ export default function App() {
         <style>{styleSheet}</style>
         <div style={{ ...card, padding: "22px 18px 24px", position: "relative" }}>
           <button onClick={() => { sfxClick(); setScreen("settings"); }} className="press"
-            style={{ position: "absolute", top: 14, right: 14, background: "#fff",
+            style={{ position: "absolute", top: 14, right: 14, zIndex: 10, background: "#fff",
               border: "2px solid #94a3b8", borderRadius: 12, padding: "6px 10px",
               fontSize: 18, cursor: "pointer", fontFamily: "inherit", lineHeight: 1,
               boxShadow: "0 3px 0 #94a3b8" }}>⚙️</button>
           <button onClick={() => { playJingle(); }} className="press"
-            style={{ position: "absolute", top: 14, left: 14, background: "#fff",
+            style={{ position: "absolute", top: 14, left: 14, zIndex: 10, background: "#fff",
               border: "2px solid #f59e0b", borderRadius: 12, padding: "6px 10px",
               fontSize: 18, cursor: "pointer", fontFamily: "inherit", lineHeight: 1,
               boxShadow: "0 3px 0 #f59e0b" }}>🎵</button>
@@ -2332,9 +2642,201 @@ export default function App() {
               );
             })}
           </div>
+
+          {/* Install App button (Android/Chrome) — appears when the browser offers install */}
+          {installPrompt && !isStandalone && (
+            <button onClick={doInstall} className="press"
+              style={{ ...bigBtn("#16a34a", "#15803d"), width: "100%", marginTop: 14, fontSize: 17 }}>
+              📲 Install App
+            </button>
+          )}
+          {/* iOS hint — Safari can't auto-prompt, so tell them how */}
+          {showIosHint && !isStandalone && (
+            <div style={{ marginTop: 14, background: "#eff6ff", border: "2px solid #bfdbfe",
+              borderRadius: 14, padding: "11px 13px", textAlign: "center" }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: "#1e40af" }}>📲 Add to Home Screen</div>
+              <div style={{ fontSize: 12.5, color: "#475569", marginTop: 3, lineHeight: 1.35 }}>
+                Tap the Share button below, then "Add to Home Screen" to install Baseball IQ like an app.
+              </div>
+            </div>
+          )}
+
           <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", margin: "14px 0 0" }}>
             For Mira Mesa Little Stars Blue · Built by Coach Mike 🐉
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- COACH MODE (custom question editor) ----
+  if (screen === "coach") {
+    const POSN = ["P","C","1B","2B","SS","3B","LF","CF","RF"];
+    const inputStyle = { width: "100%", boxSizing: "border-box", fontFamily: "inherit",
+      fontSize: 15, padding: "10px 12px", borderRadius: 12, border: "2px solid #cbd5e1",
+      color: "#0f2747", outline: "none", background: "#fff" };
+    const labelStyle = { fontSize: 13, fontWeight: 800, color: "#475569", margin: "12px 0 6px" };
+    const d = editorDraft;
+
+    // ----- FORM VIEW -----
+    if (d) {
+      const setD = (patch) => setEditorDraft((cur) => ({ ...cur, ...patch }));
+      const setOpt = (i, patch) => setEditorDraft((cur) => ({
+        ...cur, options: cur.options.map((o, j) => (j === i ? { ...o, ...patch } : o)) }));
+      const valid = draftValid(d);
+      return (
+        <div style={page}>
+          <style>{styleSheet}</style>
+          <div style={{ ...card, padding: "18px 16px 24px" }}>
+            <button onClick={() => { sfxClick(); setEditorDraft(null); }} className="press"
+              style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", fontSize: 14, padding: "7px 12px", marginBottom: 12 }}>
+              ← Cancel
+            </button>
+            <h2 style={{ margin: "0 0 14px", fontSize: 22, fontWeight: 800, color: "#7c3aed", textAlign: "center" }}>
+              {d.id ? "✏️ Edit Question" : "✏️ New Question"}
+            </h2>
+
+            <div style={labelStyle}>POSITION</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {POSN.map((p) => (
+                <button key={p} onClick={() => { sfxClick(); setD({ position: p }); }} className="press"
+                  style={{ flex: "0 0 auto", padding: "7px 12px", borderRadius: 10, cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+                    border: `2px solid ${d.position === p ? POS_META[p].color : "#cbd5e1"}`,
+                    background: d.position === p ? POS_META[p].color : "#fff",
+                    color: d.position === p ? "#fff" : "#475569" }}>
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            <div style={labelStyle}>SITUATION</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[["empty","Bases empty"],["one","One runner"],["multi","Multiple runners"]].map(([k, lbl]) => (
+                <button key={k} onClick={() => { sfxClick(); setD({ situation: k }); }} className="press"
+                  style={{ flex: 1, padding: "8px 4px", borderRadius: 10, cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+                    border: `2px solid ${d.situation === k ? "#2563eb" : "#cbd5e1"}`,
+                    background: d.situation === k ? "#dbeafe" : "#fff",
+                    color: d.situation === k ? "#1e40af" : "#475569" }}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
+
+            <div style={labelStyle}>QUESTION</div>
+            <textarea value={d.prompt} onChange={(e) => setD({ prompt: e.target.value })}
+              placeholder="e.g. Runner on second. Ground ball to you. Where's the play?"
+              rows={2} style={{ ...inputStyle, resize: "vertical" }} />
+
+            <div style={labelStyle}>ANSWER CHOICES <span style={{ fontWeight: 600, color: "#94a3b8" }}>(tap ✓ to mark correct)</span></div>
+            {d.options.map((o, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                <button onClick={() => { sfxClick(); setOpt(i, { correct: !o.correct }); }} className="press"
+                  style={{ flex: "0 0 auto", width: 36, height: 36, borderRadius: 9, cursor: "pointer",
+                    border: `2px solid ${o.correct ? "#22c55e" : "#cbd5e1"}`,
+                    background: o.correct ? "#22c55e" : "#fff", color: "#fff", fontSize: 16, fontWeight: 800 }}>
+                  {o.correct ? "✓" : ""}
+                </button>
+                <input value={o.text} onChange={(e) => setOpt(i, { text: e.target.value })}
+                  placeholder={`Choice ${i + 1}`} style={{ ...inputStyle, flex: 1 }} />
+                {d.options.length > 2 && (
+                  <button onClick={() => { sfxClick(); setEditorDraft((cur) => ({ ...cur, options: cur.options.filter((_, j) => j !== i) })); }}
+                    className="press" style={{ flex: "0 0 auto", width: 32, height: 36, borderRadius: 9,
+                      border: "2px solid #fecaca", background: "#fff", color: "#ef4444", cursor: "pointer", fontSize: 16 }}>
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+            {d.options.length < 4 && (
+              <button onClick={() => { sfxClick(); setEditorDraft((cur) => ({ ...cur, options: [...cur.options, { text: "", correct: false }] })); }}
+                className="press" style={{ background: "#eef2ff", border: "2px dashed #a5b4fc", color: "#4f46e5",
+                  borderRadius: 10, padding: "8px", width: "100%", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                + Add another choice
+              </button>
+            )}
+
+            <div style={labelStyle}>WHY (explanation when correct)</div>
+            <textarea value={d.why} onChange={(e) => setD({ why: e.target.value })}
+              placeholder="e.g. Get the lead runner — you have time on a hard grounder!"
+              rows={2} style={{ ...inputStyle, resize: "vertical" }} />
+
+            <div style={labelStyle}>HINT <span style={{ fontWeight: 600, color: "#94a3b8" }}>(shown after a wrong answer · optional)</span></div>
+            <input value={d.hint} onChange={(e) => setD({ hint: e.target.value })}
+              placeholder="e.g. Where's the closest force?" style={inputStyle} />
+
+            <button onClick={saveDraft} disabled={!valid} className="press"
+              style={{ ...bigBtn(valid ? "#16a34a" : "#cbd5e1", valid ? "#15803d" : "#94a3b8"),
+                width: "100%", marginTop: 18, opacity: 1 }}>
+              {valid ? "💾 Save Question" : "Fill in question + 2 choices + a ✓"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ----- LIST VIEW -----
+    const byPos = {};
+    customScenarios.forEach((s) => { (byPos[s.position] = byPos[s.position] || []).push(s); });
+    const positionsWithCustom = POSN.filter((p) => byPos[p] && byPos[p].length);
+    return (
+      <div style={page}>
+        <style>{styleSheet}</style>
+        <div style={{ ...card, padding: "18px 16px 24px" }}>
+          <button onClick={() => { sfxClick(); setScreen("settings"); }} className="press"
+            style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", fontSize: 14, padding: "7px 12px", marginBottom: 12 }}>
+            ← Back
+          </button>
+          <h2 style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 800, color: "#7c3aed", textAlign: "center" }}>
+            ✏️ Coach Mode
+          </h2>
+          <p style={{ textAlign: "center", margin: "0 0 16px", fontSize: 13, color: "#64748b" }}>
+            Add your own questions. They mix into the game for that position and are saved on this device.
+          </p>
+
+          <button onClick={() => { sfxClick(); setEditorDraft(blankDraft()); }} className="press"
+            style={{ ...bigBtn("#7c3aed", "#6b21a8"), width: "100%", marginBottom: 16 }}>
+            ➕ New Question
+          </button>
+
+          {customScenarios.length === 0 ? (
+            <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 14, padding: "20px 0" }}>
+              No custom questions yet.<br />Tap “New Question” to make your first one!
+            </div>
+          ) : (
+            positionsWithCustom.map((p) => (
+              <div key={p} style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: POS_META[p].color }}>
+                    {POS_META[p].name} <span style={{ color: "#94a3b8", fontWeight: 600 }}>({byPos[p].length})</span>
+                  </span>
+                  <button onClick={() => startCustomPreview(p)} className="press"
+                    style={{ background: "#dcfce7", border: "2px solid #22c55e", color: "#166534",
+                      borderRadius: 9, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    ▶ Try these
+                  </button>
+                </div>
+                {byPos[p].map((s) => (
+                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8,
+                    background: "#f8fafc", border: "2px solid #e2e8f0", borderRadius: 12,
+                    padding: "9px 11px", marginBottom: 6 }}>
+                    <div style={{ flex: 1, fontSize: 13.5, color: "#0f2747", lineHeight: 1.3 }}>{s.prompt}</div>
+                    <button onClick={() => { sfxClick(); editCustom(s); }} className="press"
+                      style={{ flex: "0 0 auto", background: "#eff6ff", border: "2px solid #bfdbfe", color: "#1e40af",
+                        borderRadius: 8, padding: "5px 9px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      Edit
+                    </button>
+                    <button onClick={() => deleteCustom(s.id)} className="press"
+                      style={{ flex: "0 0 auto", background: "#fff", border: "2px solid #fecaca", color: "#ef4444",
+                        borderRadius: 8, padding: "5px 8px", fontSize: 14, cursor: "pointer" }}>
+                      🗑
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
         </div>
       </div>
     );
@@ -2356,6 +2858,22 @@ export default function App() {
           <p style={{ textAlign: "center", margin: "0 0 18px", fontSize: 14, color: "#64748b" }}>
             Pick Coach Bruce's voice. Tap to hear a preview.
           </p>
+
+          {/* Coach Mode entry */}
+          <button onClick={() => { sfxClick(); setEditorDraft(null); setScreen("coach"); }} className="press"
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
+              background: "linear-gradient(135deg,#7c3aed,#a855f7)", border: "none",
+              borderRadius: 14, padding: "12px 14px", marginBottom: 18, cursor: "pointer",
+              fontFamily: "inherit", boxShadow: "0 4px 0 #6b21a8" }}>
+            <span style={{ fontSize: 24 }}>✏️</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>Coach Mode — Edit Questions</div>
+              <div style={{ fontSize: 12, color: "#e9d5ff", fontWeight: 600 }}>
+                Add your own plays for your league{customScenarios.length ? ` · ${customScenarios.length} saved` : ""}
+              </div>
+            </div>
+            <span style={{ fontSize: 18, color: "#fff" }}>→</span>
+          </button>
 
           {availableVoices.length === 0 ? (
             <div style={{ background: "#fef3c7", border: "2px solid #f59e0b",
@@ -2456,6 +2974,22 @@ export default function App() {
   }
 
   // ---- DONE ----
+  // ---- BATTING MINI-GAME ----
+  if (screen === "batting") {
+    return (
+      <BattingGame
+        pitcherImg={PITCHER_IMG}
+        page={page}
+        card={card}
+        onContinue={() => { stopSpeak(); setScreen("done"); }}
+        onSkip={() => { stopSpeak(); setScreen("done"); }}
+        sounds={{ whoosh: sfxWhoosh, crack: sfxCrack, crowd: crowdRoar,
+                  cheer: sfxCheer, pop: sfxPop, wrong: sfxWrong,
+                  ambienceStart: startCrowdAmbience, ambienceStop: stopCrowdAmbience }}
+      />
+    );
+  }
+
   if (screen === "done") {
     const meta = POS_META[position];
     const total = queue.length;
@@ -2486,41 +3020,83 @@ export default function App() {
         )}
         <div style={{ ...card, padding: "26px 22px", textAlign: "center" }}>
           <div style={{ animation: "pop 0.5s ease" }}><DragonCoach size={108} mood="cheer" /></div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: meta.color, margin: "8px 0 4px" }}>
-            {great ? "All-Star!" : "Nice Work!"}
-          </h1>
-          <p style={{ fontSize: 16, color: "#475569", fontWeight: 500, margin: "0 0 12px" }}>
-            You finished <b>{meta.name}</b> · {difficulty}
-          </p>
-          <div style={{ fontSize: 28, letterSpacing: 4, margin: "4px 0 6px" }}>
-            {"⭐".repeat(stars)}{"▫️".repeat(Math.max(0, total - stars))}
-          </div>
-          <p style={{ fontSize: 15, color: "#0f2747", fontWeight: 600, margin: "0 0 12px" }}>
-            {stars} of {total} on the first try!
-          </p>
+          {lightning ? (
+            <>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: "#7c3aed", margin: "8px 0 4px" }}>
+                ⚡ Lightning Done!
+              </h1>
+              <p style={{ fontSize: 16, color: "#475569", fontWeight: 500, margin: "0 0 12px" }}>
+                You banked <b>{bonusStars}</b> bonus {bonusStars === 1 ? "star" : "stars"}!
+              </p>
+              <div style={{ fontSize: 30, letterSpacing: 3, margin: "4px 0 14px" }}>
+                {"⭐".repeat(Math.min(bonusStars, 12))}
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 style={{ fontSize: 28, fontWeight: 700, color: meta.color, margin: "8px 0 4px" }}>
+                {great ? "All-Star!" : "Nice Work!"}
+              </h1>
+              <p style={{ fontSize: 16, color: "#475569", fontWeight: 500, margin: "0 0 12px" }}>
+                You finished <b>{meta.name}</b> · {difficulty}
+              </p>
+              <div style={{ fontSize: 28, letterSpacing: 4, margin: "4px 0 6px" }}>
+                {"⭐".repeat(stars)}{"▫️".repeat(Math.max(0, total - stars))}
+              </div>
+              <p style={{ fontSize: 15, color: "#0f2747", fontWeight: 600, margin: "0 0 4px" }}>
+                {stars} of {total} on the first try!
+              </p>
+              {bonusStars > 0 && (
+                <p style={{ fontSize: 14, color: "#b45309", fontWeight: 800, margin: "0 0 12px" }}>
+                  ⭐ +{bonusStars} bonus {bonusStars === 1 ? "star" : "stars"}!
+                </p>
+              )}
+            </>
+          )}
           {/* Lifetime rewards strip */}
           <div onClick={() => { sfxClick(); setScreen("trophies"); }}
             style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               background: "#eff6ff", border: "2px solid #bfdbfe", borderRadius: 14,
-              padding: "8px 12px", margin: "0 0 18px", cursor: "pointer" }}>
+              padding: "8px 12px", margin: "8px 0 18px", cursor: "pointer" }}>
             <span style={{ fontSize: 20 }}>{rank.emoji}</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a" }}>
               {rank.name} · ⭐ {totalStars} total
             </span>
             <span style={{ fontSize: 16 }}>🏆</span>
           </div>
-          <button className="press" onClick={() => pickDifficulty(difficulty)}
-            style={{ ...bigBtn(meta.color, "rgba(0,0,0,.2)"), width: "100%", marginBottom: 10 }}>
-            🔁 Try Again
-          </button>
-          <button className="press" onClick={goBack}
-            style={{ ...bigBtn("#475569", "#334155"), width: "100%", marginBottom: 10 }}>
-            Change Difficulty
-          </button>
-          <button className="press" onClick={goHome}
-            style={{ ...bigBtn("#1e3a8a", "#15296b"), width: "100%" }}>
-            🧢 Different Position
-          </button>
+
+          {lightning ? (
+            <>
+              <button className="press" onClick={startLightning}
+                style={{ ...bigBtn("#7c3aed", "#6b21a8"), width: "100%", marginBottom: 10 }}>
+                ⚡ Go Again!
+              </button>
+              <button className="press" onClick={goHome}
+                style={{ ...bigBtn("#1e3a8a", "#15296b"), width: "100%" }}>
+                🧢 Different Position
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Surprise lightning-round invite */}
+              <button className="press" onClick={startLightning}
+                style={{ ...bigBtn("#7c3aed", "#6b21a8"), width: "100%", marginBottom: 10 }}>
+                ⚡ Lightning Round!
+              </button>
+              <button className="press" onClick={() => pickDifficulty(difficulty)}
+                style={{ ...bigBtn(meta.color, "rgba(0,0,0,.2)"), width: "100%", marginBottom: 10 }}>
+                🔁 Try Again
+              </button>
+              <button className="press" onClick={goBack}
+                style={{ ...bigBtn("#475569", "#334155"), width: "100%", marginBottom: 10 }}>
+                Change Difficulty
+              </button>
+              <button className="press" onClick={goHome}
+                style={{ ...bigBtn("#1e3a8a", "#15296b"), width: "100%" }}>
+                🧢 Different Position
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -2543,6 +3119,46 @@ export default function App() {
           goHome={goHome} soundOn={soundOn}
           toggleSound={() => { setSoundOn((s) => !s); stopSpeak(); }} />
 
+        {/* Lightning round banner with combo counter */}
+        {lightning && !inReview && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+            background: "linear-gradient(90deg,#7c3aed,#a855f7)", borderRadius: 12,
+            margin: "8px 14px 0", padding: "8px 12px", boxShadow: "0 3px 0 #6b21a8" }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>⚡ Lightning Round</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#fde68a" }}>
+              {combo > 1 ? `🔥 ${combo} in a row!` : `⭐ ${bonusStars} bonus`}
+            </span>
+          </div>
+        )}
+
+        {/* Surprise BONUS PLAY banner (regular rounds) */}
+        {!lightning && !inReview && sc && sc.bonus && phase === "ask" && (
+          <div style={{ textAlign: "center", margin: "8px 14px 0", padding: "7px 12px",
+            background: "linear-gradient(90deg,#f59e0b,#fbbf24)", borderRadius: 12,
+            boxShadow: "0 3px 0 #b45309", animation: "pop 0.4s ease" }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>⭐ BONUS PLAY — double stars if you get it!</span>
+          </div>
+        )}
+
+        {/* Action cutaway on correct answers */}
+        {cutaway && !inReview && (
+          <Cutaway phrase={cutaway.phrase} img={meta.img} color={meta.color} />
+        )}
+
+        {/* Mid-game bonus celebration */}
+        {bonusPopup && !inReview && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex",
+            alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+            <div style={{ background: "linear-gradient(135deg,#f59e0b,#fbbf24)", color: "#fff",
+              borderRadius: 20, padding: "18px 26px", textAlign: "center",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.35)", animation: "pop 0.45s ease" }}>
+              <div style={{ fontSize: 46, lineHeight: 1 }}>{bonusPopup.emoji}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, marginTop: 4 }}>{bonusPopup.title}</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{bonusPopup.sub}</div>
+            </div>
+          </div>
+        )}
+
         {/* Review banner */}
         {inReview && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -2564,7 +3180,7 @@ export default function App() {
 
         <div style={{ padding: "4px 12px 0" }}>
           <Field sc={viewSc} phase={viewPhase} chosen={inReview ? viewSc.correct : chosen} result={viewResult}
-            choose={inReview ? (() => {}) : choose} movePos={movePos} showHit={showHit}
+            choose={inReview ? (() => {}) : armOrChoose} armed={inReview ? null : armed} movePos={movePos} showHit={showHit}
             ballPath={inReview ? null : ballPath} puff={inReview ? null : puff} batSwing={inReview ? 0 : batSwing}
             pitcherRun={inReview ? null : pitcherRun}
             stage={meta} position={position} />
@@ -2587,7 +3203,7 @@ export default function App() {
         ) : (
           <Feedback sc={sc} phase={phase} result={result}
             next={next} tryAgain={tryAgain} color={meta.color}
-            choose={choose}
+            choose={armOrChoose} armed={armed} commitArmed={commitArmed} actionLabel={actionLabel(sc)}
             isLast={idx + 1 >= queue.length} />
         )}
       </div>
@@ -2598,6 +3214,313 @@ export default function App() {
 // ============================================================
 // Subcomponents
 // ============================================================
+
+// ---- BATTING MINI-GAME (module-complete reward) ----
+// A 2D arcade-style "step up to bat" moment: a pitch flies in, the kid taps
+// SWING, and good timing launches a home run with fireworks + crowd roar.
+function Fireworks() {
+  const bursts = [
+    { x: 22, y: 28, color: "#fbbf24" },
+    { x: 74, y: 22, color: "#f87171" },
+    { x: 50, y: 14, color: "#60a5fa" },
+    { x: 35, y: 40, color: "#34d399" },
+    { x: 82, y: 46, color: "#c084fc" },
+  ];
+  return (
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+      {bursts.map((b, bi) => (
+        <div key={bi} style={{ position: "absolute", left: `${b.x}%`, top: `${b.y}%`,
+          animation: `pop 0.4s ease ${bi * 0.18}s both` }}>
+          {Array.from({ length: 12 }).map((_, i) => {
+            const ang = (i / 12) * Math.PI * 2;
+            const dist = 34 + (i % 3) * 8;
+            return (
+              <span key={i} style={{
+                position: "absolute", width: 6, height: 6, borderRadius: "50%",
+                background: b.color, boxShadow: `0 0 6px ${b.color}`,
+                "--dx": `${Math.cos(ang) * dist}px`, "--dy": `${Math.sin(ang) * dist}px`,
+                animation: `fwparticle 1s ease-out ${bi * 0.18}s infinite` }} />
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BattingGame({ pitcherImg, onContinue, onSkip, sounds, page, card }) {
+  const [phase, setPhase] = useState("ready");   // ready | pitch | launch | result
+  const [pitchT, setPitchT] = useState(0);        // 0..1 incoming pitch progress
+  const [launchT, setLaunchT] = useState(0);      // 0..1 outgoing hit progress
+  const [result, setResult] = useState(null);     // "homerun" | "hit" | "miss"
+  const [swinging, setSwinging] = useState(0);     // increments to retrigger bat swing
+  const rafRef = useRef(null);
+  const startRef = useRef(0);
+  const doneRef = useRef(false);
+  const mountedRef = useRef(true);
+  const launchDirRef = useRef(1);
+  const PITCH_MS = 1500;
+  const LAUNCH_MS = 950;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    sounds.ambienceStart && sounds.ambienceStart();
+    const t = setTimeout(() => startPitch(), 500);
+    return () => { mountedRef.current = false; clearTimeout(t); if (rafRef.current) cancelAnimationFrame(rafRef.current); sounds.ambienceStop && sounds.ambienceStop(); };
+    // eslint-disable-next-line
+  }, []);
+
+  const startPitch = () => {
+    if (!mountedRef.current) return;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    doneRef.current = false;
+    setResult(null); setLaunchT(0); setPitchT(0); setPhase("pitch");
+    startRef.current = performance.now();
+    const loop = (now) => {
+      if (!mountedRef.current) return;
+      const t = Math.min(1, (now - startRef.current) / PITCH_MS);
+      setPitchT(t);
+      if (t >= 1) { if (!doneRef.current) takeStrike(); return; }
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+  };
+
+  const takeStrike = () => {
+    doneRef.current = true;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    setResult("miss"); setPhase("result");
+    sounds.wrong && sounds.wrong();
+    setTimeout(() => { if (mountedRef.current) startPitch(); }, 1200);
+  };
+
+  const swing = () => {
+    if (phase !== "pitch" || doneRef.current) return;
+    doneRef.current = true;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    setSwinging((n) => n + 1);
+    sounds.whoosh && sounds.whoosh();
+    const prog = Math.min(1, (performance.now() - startRef.current) / PITCH_MS);
+    // Sweet spot = HOME RUN; any other contact = solid base hit (always positive!)
+    const res = prog >= 0.66 && prog <= 0.92 ? "homerun" : "hit";
+    launchDirRef.current = Math.random() > 0.5 ? 1 : -1;
+    // Crack of the bat
+    setTimeout(() => sounds.crack && sounds.crack(), 60);
+    // Launch the ball
+    setResult(res); setPhase("launch");
+    startRef.current = performance.now();
+    const loop = (now) => {
+      if (!mountedRef.current) return;
+      const t = Math.min(1, (now - startRef.current) / LAUNCH_MS);
+      setLaunchT(t);
+      if (t >= 1) {
+        setPhase("result");
+        if (res === "homerun") { sounds.crowd && sounds.crowd(1.35); }
+        else { sounds.crowd && sounds.crowd(0.7); }
+        return;
+      }
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+  };
+
+  // ----- Ball position -----
+  // Incoming: from the mound (200,250) to the hit zone (200,398), growing.
+  const inX = 200, inY0 = 250, inY1 = 398;
+  let ballX = inX, ballY = inY1, ballR = 26, ballOpacity = 1;
+  if (phase === "pitch") {
+    ballY = inY0 + (inY1 - inY0) * pitchT;
+    ballR = 5 + 21 * pitchT;
+  } else if (phase === "launch") {
+    // Arc up and out into the stands
+    const t = launchT;
+    const tx = 200 + launchDirRef.current * 150 * t;
+    const ty = 398 - 360 * t - 40 * Math.sin(Math.PI * t);
+    ballX = tx; ballY = ty; ballR = 26 - 22 * t; ballOpacity = 1 - t * 0.5;
+  } else if (phase === "result") {
+    if (result === "miss") { ballX = inX; ballY = inY1; ballR = 22; }
+    else { ballOpacity = 0; }
+  }
+
+  const showFireworks = phase === "result" && result === "homerun";
+
+  return (
+    <div style={page}>
+      <style>{styleSheet}</style>
+      <div style={{ ...card, padding: 0, position: "relative", overflow: "hidden" }}>
+        {/* Title bar */}
+        <div style={{ background: "linear-gradient(90deg,#1e3a8a,#2563eb)", padding: "12px 16px",
+          display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ color: "#fff", fontWeight: 800, fontSize: 17 }}>⚾ Step Up to Bat!</span>
+          <button onClick={onSkip} className="press"
+            style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "none",
+              borderRadius: 10, padding: "5px 11px", fontSize: 13, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit" }}>Skip →</button>
+        </div>
+
+        {/* Stadium scene */}
+        <div style={{ position: "relative", animation: showFireworks ? "scenezoom 0.6s ease both" : "none" }}>
+          <svg viewBox="0 0 400 460" style={{ width: "100%", display: "block" }}>
+            <defs>
+              <linearGradient id="bsky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#1e3a8a" /><stop offset="55%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#7dd3fc" />
+              </linearGradient>
+              <linearGradient id="bgrass" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#4ade80" /><stop offset="100%" stopColor="#16a34a" />
+              </linearGradient>
+            </defs>
+            {/* Sky */}
+            <rect x="0" y="0" width="400" height="210" fill="url(#bsky)" />
+            {/* Stadium lights */}
+            <circle cx="60" cy="30" r="10" fill="#fef9c3" opacity="0.9" />
+            <circle cx="340" cy="30" r="10" fill="#fef9c3" opacity="0.9" />
+            {/* Upper deck stands with crowd dots */}
+            <rect x="0" y="120" width="400" height="95" fill="#475569" />
+            {Array.from({ length: 7 }).map((_, r) =>
+              Array.from({ length: 40 }).map((_, c) => (
+                <circle key={`${r}-${c}`} cx={6 + c * 10} cy={128 + r * 12} r="2.6"
+                  fill={["#fca5a5","#fcd34d","#93c5fd","#fff","#86efac","#f9a8d4"][(r + c) % 6]} opacity="0.85" />
+              ))
+            )}
+            {/* Outfield wall */}
+            <rect x="0" y="205" width="400" height="14" fill="#0f3d2e" />
+            <rect x="0" y="205" width="400" height="4" fill="#fbbf24" opacity="0.7" />
+            {/* Field */}
+            <rect x="0" y="216" width="400" height="244" fill="url(#bgrass)" />
+            {/* Mowing stripes */}
+            {[0,1,2,3,4,5].map(i => (
+              <polygon key={i} points={`${i*70-20},460 ${i*70+15},216 ${i*70+50},216 ${i*70+15},460`}
+                fill="#ffffff" opacity={i % 2 ? 0.05 : 0} />
+            ))}
+            {/* Pitcher's mound */}
+            <ellipse cx="200" cy="255" rx="34" ry="14" fill="#c2a878" />
+            {pitcherImg && (
+              <image href={pitcherImg} x="182" y="222" width="36" height="36" style={{ pointerEvents: "none" }} />
+            )}
+            {/* Infield dirt near batter (foreground) */}
+            <ellipse cx="200" cy="450" rx="180" ry="60" fill="#c2a878" />
+            <polygon points="200,402 214,416 200,430 186,416" fill="#fff" stroke="#cbd5e1" strokeWidth="1.5" />
+            {/* The ball */}
+            {ballOpacity > 0 && (
+              <g opacity={ballOpacity}>
+                <circle cx={ballX} cy={ballY} r={ballR} fill="#ffffff" stroke="#cbd5e1" strokeWidth="1.5" />
+                <path d={`M ${ballX - ballR*0.6} ${ballY - ballR*0.3} Q ${ballX} ${ballY} ${ballX - ballR*0.6} ${ballY + ballR*0.3}`}
+                  fill="none" stroke="#ef4444" strokeWidth={Math.max(1, ballR*0.08)} />
+                <path d={`M ${ballX + ballR*0.6} ${ballY - ballR*0.3} Q ${ballX} ${ballY} ${ballX + ballR*0.6} ${ballY + ballR*0.3}`}
+                  fill="none" stroke="#ef4444" strokeWidth={Math.max(1, ballR*0.08)} />
+              </g>
+            )}
+            {/* POV bat (foreground, bottom) */}
+            <g style={{ transformOrigin: "150px 452px",
+              transform: swinging ? undefined : "rotate(38deg)",
+              animation: swinging ? "batswing 0.4s ease-out both" : "none" }}
+               key={swinging}>
+              <rect x="142" y="372" width="16" height="86" rx="8" fill="#b45309" stroke="#78350f" strokeWidth="2" />
+              <rect x="140" y="446" width="20" height="16" rx="5" fill="#78350f" />
+            </g>
+          </svg>
+
+          {showFireworks && <Fireworks />}
+
+          {/* Result banner */}
+          {phase === "result" && result !== "miss" && (
+            <div style={{ position: "absolute", top: "34%", left: 0, right: 0, textAlign: "center" }}>
+              <div style={{ display: "inline-block", animation: "hrtext 0.6s ease both",
+                background: result === "homerun" ? "linear-gradient(90deg,#f59e0b,#fbbf24)" : "#22c55e",
+                color: "#fff", fontWeight: 800, fontSize: result === "homerun" ? 40 : 30,
+                padding: "10px 22px", borderRadius: 16, border: "4px solid #fff",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.35)", WebkitTextStroke: "1px rgba(0,0,0,0.15)" }}>
+                {result === "homerun" ? "💥 HOME RUN!" : "🔥 BASE HIT!"}
+              </div>
+            </div>
+          )}
+          {phase === "result" && result === "miss" && (
+            <div style={{ position: "absolute", top: "40%", left: 0, right: 0, textAlign: "center" }}>
+              <div style={{ display: "inline-block", background: "#0f172a", color: "#fff",
+                fontWeight: 800, fontSize: 22, padding: "8px 18px", borderRadius: 14, opacity: 0.85 }}>
+                Strike! Here comes another…
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Controls */}
+        <div style={{ padding: "14px 16px 18px", textAlign: "center" }}>
+          {phase === "ready" && (
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#475569" }}>Here comes the pitch…</div>
+          )}
+          {phase === "pitch" && (
+            <button onClick={swing} className="press"
+              style={{ width: "100%", padding: "18px 12px", borderRadius: 18, border: "none",
+                cursor: "pointer", fontFamily: "inherit", fontSize: 26, fontWeight: 800,
+                color: "#fff", background: "#dc2626", boxShadow: "0 6px 0 #991b1b",
+                animation: "btnpulse 0.7s ease-in-out infinite" }}>
+              🏏 SWING!
+            </button>
+          )}
+          {(phase === "launch") && (
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#16a34a" }}>⚾ It's going… going…</div>
+          )}
+          {phase === "result" && result !== "miss" && (
+            <>
+              <button onClick={startPitch} className="press"
+                style={{ ...bigBtnG("#7c3aed", "#6b21a8"), width: "100%", marginBottom: 10 }}>
+                🏏 Swing Again
+              </button>
+              <button onClick={onContinue} className="press"
+                style={{ ...bigBtnG("#16a34a", "#15803d"), width: "100%" }}>
+                Continue →
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Local button style helper for the batting game (mirrors bigBtn).
+const bigBtnG = (bg, sh) => ({
+  background: bg, color: "#fff", border: "none",
+  fontFamily: "inherit", fontWeight: 700, fontSize: 18,
+  padding: "13px 22px", borderRadius: 16, cursor: "pointer",
+  boxShadow: `0 5px 0 ${sh}`, WebkitTapHighlightColor: "transparent",
+});
+
+// ---- ACTION CUTAWAY (brief overlay on every correct answer) ----
+// A fast ~1.2s MLB-style action vignette: the player card lunges in over
+// speed lines and a flash, with an arcade banner. Purely visual (no taps).
+function Cutaway({ phrase, img, color }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, pointerEvents: "none",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      animation: "cutfade 1.25s ease forwards" }}>
+      <div style={{ position: "absolute", inset: 0,
+        background: `radial-gradient(circle at 50% 45%, ${color}cc 0%, rgba(8,12,24,0.88) 72%)` }} />
+      <div style={{ position: "absolute", inset: 0, opacity: 0.16,
+        backgroundImage: "repeating-linear-gradient(115deg, #fff 0 2px, transparent 2px 18px)",
+        animation: "speedlines 0.5s linear infinite" }} />
+      <div style={{ position: "absolute", width: 130, height: 130, borderRadius: "50%",
+        background: "#fff", filter: "blur(10px)", animation: "flashpop 0.6s ease-out forwards" }} />
+      {img && (
+        <img src={img} alt="" width={154} height={154}
+          style={{ position: "relative", objectFit: "contain",
+            filter: "drop-shadow(0 10px 18px rgba(0,0,0,0.55))",
+            animation: "cutin 0.5s cubic-bezier(.2,.9,.3,1.2) forwards" }} />
+      )}
+      <div style={{ position: "absolute", bottom: "30%", left: 0, right: 0, textAlign: "center" }}>
+        <div style={{ display: "inline-block", animation: "hrtext 0.5s ease both",
+          background: "linear-gradient(90deg,#f59e0b,#fbbf24)", color: "#fff",
+          fontWeight: 800, fontSize: 34, padding: "8px 22px", borderRadius: 14,
+          border: "4px solid #fff", boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          WebkitTextStroke: "1px rgba(0,0,0,0.15)", letterSpacing: 0.5 }}>
+          {phrase}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Header({ meta, idx, total, goHome, soundOn, toggleSound }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -2656,10 +3579,21 @@ function CoachBubble({ prompt, mood, variant }) {
   );
 }
 
-function Field({ sc, phase, chosen, result, choose, movePos, showHit, ballPath, puff, batSwing, pitcherRun, stage, position }) {
+function Field({ sc, phase, chosen, armed, result, choose, movePos, showHit, ballPath, puff, batSwing, pitcherRun, stage, position }) {
   const fielders = new Set(["P","C","1B","2B","SS","3B","LF","CF","RF"]);
   const reveal = phase === "reveal" || phase === "rehearse" || phase === "rehearseMove" || phase === "done";
   const isPopup = sc.mode === "popup";
+  // Place the pop-up ball equidistant (centroid) among the fielders in question.
+  const popupBall = (() => {
+    const pts = (sc.candidates || []).map((f) => POS[f]).filter(Boolean);
+    if (pts.length) {
+      return {
+        x: pts.reduce((s, p) => s + p.x, 0) / pts.length,
+        y: pts.reduce((s, p) => s + p.y, 0) / pts.length,
+      };
+    }
+    return sc.popupAt || { x: 200, y: 150 };
+  })();
   const isBaserun = sc.mode === "baserun";
   const targets = sc.targets || [];
   const isRehearsing = phase === "rehearse";
@@ -2701,13 +3635,17 @@ function Field({ sc, phase, chosen, result, choose, movePos, showHit, ballPath, 
         const correctArr = Array.isArray(sc.correct) ? sc.correct : [sc.correct];
         const isCorrect = (phase === "reveal" || phase === "rehearse" || phase === "rehearseMove" || phase === "done") && correctArr.includes(b);
         const isWrong = phase === "reveal" && b === chosen && result === "wrong";
-        const fill = isCorrect ? "#22c55e" : isWrong ? "#f87171" : "#ffffff";
+        const isArmed = phase === "ask" && armed === b;
+        const fill = isCorrect ? "#22c55e" : isWrong ? "#f87171" : isArmed ? "#fbbf24" : "#ffffff";
         return (
           <g key={b} onClick={() => tappable && choose(b)} style={{ cursor: tappable ? "pointer" : "default" }}>
             <circle cx={p.x} cy={p.y} r="28" fill="transparent" />
-            {tappable && (
+            {tappable && !isArmed && (
               <circle cx={p.x} cy={p.y} r="20" fill="none" stroke={stage.color} strokeWidth="3"
                 opacity="0.9" style={{ transformOrigin: `${p.x}px ${p.y}px`, animation: "pulse 1.3s ease-in-out infinite" }} />
+            )}
+            {isArmed && (
+              <circle cx={p.x} cy={p.y} r="22" fill="none" stroke="#f59e0b" strokeWidth="4" opacity="1" />
             )}
             {b === "home" ? (
               <polygon points={`${p.x-12},${p.y-6} ${p.x+12},${p.y-6} ${p.x+12},${p.y+4} ${p.x},${p.y+13} ${p.x-12},${p.y+4}`}
@@ -2756,21 +3694,28 @@ function Field({ sc, phase, chosen, result, choose, movePos, showHit, ballPath, 
         const isRehearseTarget = isRehearsing && f === "P" && sc.position !== "P";
 
         // Visual: tappable popup candidates always pulse
-        const showPulse = tappable || (isPopup && isPopupCandidate && phase === "ask") || isRehearseTarget;
+        const isArmed = phase === "ask" && armed === f;
+        const showPulse = (tappable && !isArmed) || (isPopup && isPopupCandidate && phase === "ask" && !isArmed) || isRehearseTarget;
 
         // Highlight pitcher in green during rehearseMove/done if they got it right
         const isRehearseGlow = (phase === "rehearseMove" || phase === "done") && f === "P" && needsRehearseForSc(sc);
 
         const fillC = isCorrect ? "#22c55e"
           : isWrong ? "#ef4444"
+          : isArmed ? "#fbbf24"
           : isRehearseTarget ? "#dc2626"
           : isRehearseGlow ? "#22c55e"
           : isYou ? "#2563eb"
           : isCoverYou ? "#2563eb"
           : isBallAt ? "#f97316"
           : "#475569";
-        const big = isYou || isCoverYou || isBallAt || tappable || isCorrect || isWrong || isPopupCandidate || isRehearseTarget || isRehearseGlow;
+        const big = isYou || isCoverYou || isBallAt || tappable || isCorrect || isWrong || isPopupCandidate || isRehearseTarget || isRehearseGlow || isArmed;
         const r = big ? 16 : 12;
+        // Show the player card (Home-screen artwork) for the YOU fielder — but
+        // fall back to the colored circle when this spot is showing feedback.
+        const feedbackState = isCorrect || isWrong || isRehearseGlow || isRehearseTarget;
+        const showCard = (isYou || isCoverYou) && stage.img && !feedbackState;
+        const cardR = 19;
 
         const clickable = tappable || (isPopup && isPopupCandidate && phase === "ask") || isRehearseTarget;
 
@@ -2783,11 +3728,25 @@ function Field({ sc, phase, chosen, result, choose, movePos, showHit, ballPath, 
               <circle cx={p.x} cy={p.y} r="23" fill="none" stroke={isRehearseTarget ? "#dc2626" : stage.color} strokeWidth="3"
                 opacity="0.9" style={{ transformOrigin: `${p.x}px ${p.y}px`, animation: "pulse 1.3s ease-in-out infinite" }} />
             )}
-            <circle cx={p.x} cy={p.y} r={r} fill={fillC} stroke="#fff" strokeWidth="2.5" />
-            <text x={p.x} y={p.y+4} textAnchor="middle"
-              fontSize={r > 13 ? 11 : 9} fontWeight="800" fill="#fff">
-              {isCorrect && !isPopup ? "✓" : f}
-            </text>
+            {isArmed && (
+              <circle cx={p.x} cy={p.y} r="22" fill="none" stroke="#f59e0b" strokeWidth="4" opacity="1" />
+            )}
+            {showCard ? (
+              <>
+                <circle cx={p.x} cy={p.y} r={cardR + 1} fill="#2563eb" />
+                <image href={stage.img} x={p.x - cardR} y={p.y - cardR} width={cardR * 2} height={cardR * 2}
+                  style={{ pointerEvents: "none" }} />
+                <circle cx={p.x} cy={p.y} r={cardR} fill="none" stroke="#fff" strokeWidth="2.5" />
+              </>
+            ) : (
+              <>
+                <circle cx={p.x} cy={p.y} r={r} fill={fillC} stroke="#fff" strokeWidth="2.5" />
+                <text x={p.x} y={p.y+4} textAnchor="middle"
+                  fontSize={r > 13 ? 11 : 9} fontWeight="800" fill="#fff">
+                  {isCorrect && !isPopup ? "✓" : f}
+                </text>
+              </>
+            )}
             {(isYou || isCoverYou) && (
               <text x={p.x} y={p.y - r - 4} textAnchor="middle" fontSize="11" fontWeight="700" fill="#1e3a8a">YOU</text>
             )}
@@ -2801,12 +3760,12 @@ function Field({ sc, phase, chosen, result, choose, movePos, showHit, ballPath, 
       {/* Popup ball icon */}
       {isPopup && (
         <g>
-          <circle cx={sc.popupAt.x} cy={sc.popupAt.y - 6} r="11" fill="#fff" stroke="#cbd5e1" strokeWidth="2" />
-          <path d={`M${sc.popupAt.x-5} ${sc.popupAt.y-11} Q${sc.popupAt.x-9} ${sc.popupAt.y-6} ${sc.popupAt.x-5} ${sc.popupAt.y-1} M${sc.popupAt.x+5} ${sc.popupAt.y-11} Q${sc.popupAt.x+9} ${sc.popupAt.y-6} ${sc.popupAt.x+5} ${sc.popupAt.y-1}`}
+          <circle cx={popupBall.x} cy={popupBall.y - 6} r="11" fill="#fff" stroke="#cbd5e1" strokeWidth="2" />
+          <path d={`M${popupBall.x-5} ${popupBall.y-11} Q${popupBall.x-9} ${popupBall.y-6} ${popupBall.x-5} ${popupBall.y-1} M${popupBall.x+5} ${popupBall.y-11} Q${popupBall.x+9} ${popupBall.y-6} ${popupBall.x+5} ${popupBall.y-1}`}
             stroke="#ef4444" strokeWidth="1.5" fill="none" />
-          <path d={`M${sc.popupAt.x} ${sc.popupAt.y+5} L${sc.popupAt.x-4} ${sc.popupAt.y+18} L${sc.popupAt.x+4} ${sc.popupAt.y+18} Z`}
+          <path d={`M${popupBall.x} ${popupBall.y+5} L${popupBall.x-4} ${popupBall.y+18} L${popupBall.x+4} ${popupBall.y+18} Z`}
             fill="rgba(0,0,0,0.18)" />
-          <text x={sc.popupAt.x} y={sc.popupAt.y - 20} textAnchor="middle" fontSize="13" fontWeight="800" fill="#dc2626">↑POP!</text>
+          <text x={popupBall.x} y={popupBall.y - 20} textAnchor="middle" fontSize="13" fontWeight="800" fill="#dc2626">↑POP!</text>
         </g>
       )}
 
@@ -2906,35 +3865,59 @@ function ReviewFeedback({ sc, color, canGoBack, onPrev, onNext }) {
   );
 }
 
-function Feedback({ sc, phase, result, next, tryAgain, color, isLast, choose }) {
+function Feedback({ sc, phase, result, next, tryAgain, color, isLast, choose, armed, commitArmed, actionLabel }) {
   if (phase === "ask") {
-    // MC mode: render multiple-choice buttons
+    // The big action button — bright + pulsing once a choice is armed.
+    const isArmed = armed !== null && armed !== undefined;
+    const actionBtn = (
+      <button onClick={commitArmed} className="press"
+        style={{ width: "100%", marginTop: 10, padding: "16px 12px", borderRadius: 16,
+          border: "none", cursor: "pointer", fontFamily: "inherit",
+          fontSize: 22, fontWeight: 800, letterSpacing: 0.5,
+          color: "#fff",
+          background: isArmed ? "#16a34a" : "#cbd5e1",
+          boxShadow: isArmed ? "0 5px 0 #15803d" : "0 5px 0 #94a3b8",
+          transition: "background .15s",
+          animation: isArmed ? "btnpulse 1.1s ease-in-out infinite" : "none" }}>
+        {actionLabel}
+      </button>
+    );
+
+    // MC mode: render multiple-choice buttons (armed one highlighted), then the action button.
     if (sc.mc) {
       return (
         <div style={{ padding: "10px 14px 14px" }}>
           <div style={{ textAlign: "center", fontSize: 13, fontWeight: 700,
             color: color, padding: "0 0 8px" }}>
-            👆 Pick the best answer
+            👆 Pick your answer, then hit the button!
           </div>
-          {sc.mc.map((opt, i) => (
-            <button key={i} onClick={() => choose(i)} className="press"
-              style={{ display: "block", width: "100%", textAlign: "left",
-                background: "#fff", border: `3px solid ${color}`,
-                borderRadius: 14, padding: "11px 13px", marginBottom: 8,
-                cursor: "pointer", fontFamily: "inherit",
-                fontSize: 14, fontWeight: 600, color: "#0f2747", lineHeight: 1.3,
-                boxShadow: `0 4px 0 ${color}`,
-                WebkitTapHighlightColor: "transparent" }}>
-              {opt.label}
-            </button>
-          ))}
+          {sc.mc.map((opt, i) => {
+            const sel = armed === i;
+            return (
+              <button key={i} onClick={() => choose(i)} className="press"
+                style={{ display: "block", width: "100%", textAlign: "left",
+                  background: sel ? "#fef3c7" : "#fff",
+                  border: `3px solid ${sel ? "#f59e0b" : color}`,
+                  borderRadius: 14, padding: "11px 13px", marginBottom: 8,
+                  cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 14, fontWeight: 600, color: "#0f2747", lineHeight: 1.3,
+                  boxShadow: `0 4px 0 ${sel ? "#f59e0b" : color}`,
+                  WebkitTapHighlightColor: "transparent" }}>
+                {sel ? "👉 " : ""}{opt.label}
+              </button>
+            );
+          })}
+          {actionBtn}
         </div>
       );
     }
     return (
-      <div style={{ textAlign: "center", fontSize: 14, fontWeight: 700,
-        color: color, padding: "10px 0 14px" }}>
-        👆 Tap a glowing spot on the field!
+      <div style={{ padding: "10px 14px 14px" }}>
+        <div style={{ textAlign: "center", fontSize: 14, fontWeight: 700,
+          color: color, padding: "0 0 2px" }}>
+          👆 Tap a glowing spot, then hit the button!
+        </div>
+        {actionBtn}
       </div>
     );
   }
@@ -3025,6 +4008,15 @@ const styleSheet = `
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 @keyframes pulse { 0%,100% { transform: scale(1); opacity:.9 } 50% { transform: scale(1.28); opacity:.35 } }
+@keyframes btnpulse { 0%,100% { transform: scale(1); box-shadow: 0 5px 0 #15803d } 50% { transform: scale(1.025); box-shadow: 0 5px 0 #15803d, 0 0 0 4px rgba(34,197,94,0.25) } }
+@keyframes fwparticle { 0% { transform: translate(0,0) scale(1); opacity: 1 } 100% { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0 } }
+@keyframes batswing { 0% { transform: rotate(38deg) } 45% { transform: rotate(-70deg) } 100% { transform: rotate(-55deg) } }
+@keyframes hrtext { 0% { transform: scale(0.2) rotate(-8deg); opacity: 0 } 55% { transform: scale(1.25) rotate(3deg); opacity: 1 } 75% { transform: scale(0.95) rotate(-1deg) } 100% { transform: scale(1) rotate(0deg); opacity: 1 } }
+@keyframes scenezoom { 0% { transform: scale(1) } 100% { transform: scale(1.06) } }
+@keyframes cutin { 0% { transform: translateX(-40%) scale(0.5) rotate(-12deg); opacity: 0 } 40% { transform: translateX(6%) scale(1.18) rotate(4deg); opacity: 1 } 70% { transform: translateX(0) scale(1.05) rotate(0deg) } 100% { transform: translateX(0) scale(1.08) rotate(0deg); opacity: 1 } }
+@keyframes speedlines { 0% { background-position: 0 0 } 100% { background-position: 120px 0 } }
+@keyframes flashpop { 0% { transform: scale(0.3); opacity: 0.9 } 100% { transform: scale(2.4); opacity: 0 } }
+@keyframes cutfade { 0%,80% { opacity: 1 } 100% { opacity: 0 } }
 @keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-7px) } }
 @keyframes pop { 0% { transform: scale(.7); opacity:0 } 60% { transform: scale(1.06) } 100% { transform: scale(1); opacity:1 } }
 @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }

@@ -1,6 +1,6 @@
 // Baseball IQ service worker — makes the app load instantly and work offline.
 // Bump CACHE_VERSION whenever you deploy new code so phones pick up the update.
-const CACHE_VERSION = "baseball-iq-v1";
+const CACHE_VERSION = "baseball-iq-v8";
 
 // On install, pre-cache the core shell. Vite fingerprints the JS/CSS filenames,
 // so we cache the root and let the fetch handler pick up the hashed assets at runtime.
