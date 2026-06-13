@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Baseball IQ",
-  "short_name": "Baseball IQ",
+  "name": "Baseball Genius",
+  "short_name": "Baseball Genius",
   "description": "Learn situational baseball — what to do on every play. Built by Coach Mike.",
   "start_url": "/",
   "scope": "/",

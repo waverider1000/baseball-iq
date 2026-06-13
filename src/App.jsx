@@ -153,12 +153,12 @@ const POSITION_ORDER = ["P","C","1B","2B","SS","3B","LF","CF","RF","POPUP","RUNN
 // Player ranks by lifetime stars earned. Each star = one first-try correct answer.
 const RANKS = [
   { name: "Rookie",        emoji: "🧢", min: 0 },
-  { name: "Benchwarmer",   emoji: "🪑", min: 15 },
-  { name: "Starter",       emoji: "⚾", min: 35 },
-  { name: "Slugger",       emoji: "💪", min: 60 },
-  { name: "All-Star",      emoji: "🌟", min: 90 },
-  { name: "MVP",           emoji: "🏆", min: 130 },
-  { name: "Hall of Famer", emoji: "👑", min: 180 },
+  { name: "Benchwarmer",   emoji: "🪑", min: 10 },
+  { name: "Starter",       emoji: "⚾", min: 50 },
+  { name: "Slugger",       emoji: "💪", min: 150 },
+  { name: "All-Star",      emoji: "🌟", min: 300 },
+  { name: "MVP",           emoji: "🏆", min: 600 },
+  { name: "Hall of Famer", emoji: "👑", min: 1000 },
 ];
 const rankForStars = (stars) => {
   let r = RANKS[0];
@@ -166,6 +166,56 @@ const rankForStars = (stars) => {
   return r;
 };
 const nextRankFor = (stars) => RANKS.find((t) => t.min > stars) || null;
+
+// Player profile avatars + unlockable gear (cosmetics earned by rank).
+// Jerseys actually recolor YOUR team in the Retro Ball Game!
+const AVATARS = ["⚾","🦖","🔥","🌟","🦅","🚀","🐉","🧢","😎","💪","🐯","🦈"];
+const GEAR = [
+  { id:"jersey-navy",   type:"jersey", name:"Navy Classic",       color:"#1e3a8a", min:0,   emoji:"👕" },
+  { id:"jersey-red",    type:"jersey", name:"Rally Red",          color:"#c1121f", min:10,  emoji:"👕" },
+  { id:"jersey-green",  type:"jersey", name:"Turf Green",         color:"#2f9e44", min:50,  emoji:"👕" },
+  { id:"bat-gold",      type:"item",   name:"Golden Bat",         min:150, emoji:"🥇", batColor:"#f0b429" },
+  { id:"jersey-purple", type:"jersey", name:"Galaxy Purple",      color:"#6d28d9", min:300, emoji:"👕" },
+  { id:"helmet-fire",   type:"item",   name:"Flame Helmet",       min:300, emoji:"🔥" },
+  { id:"jersey-gold",   type:"jersey", name:"Championship Gold",  color:"#b08900", min:600, emoji:"👕" },
+  { id:"glove-star",    type:"item",   name:"Star Glove",         min:600, emoji:"🌟" },
+  { id:"jersey-black",  type:"jersey", name:"Hall of Fame Black", color:"#111827", min:1000, emoji:"👕" },
+  { id:"field-fireworks",type:"item",  name:"Victory Fireworks",  min:1000, emoji:"🎆" },
+];
+// 🏪 THE DUGOUT — items bought with 🌻 Seeds (earned alongside stars; Seeds
+// are spending money and NEVER affect rank).
+const SHOP = [
+  { id:"shop-bubblegum",  type:"item",   name:"Bubblegum",         price:15,  emoji:"🍬" },
+  { id:"shop-pennant",    type:"item",   name:"Team Pennant",      price:30,  emoji:"🚩" },
+  { id:"shop-av-wolf",    type:"avatar", name:"Wolf Avatar",       price:25,  emoji:"🐺" },
+  { id:"shop-av-bolt",    type:"avatar", name:"Lightning Avatar",  price:25,  emoji:"⚡" },
+  { id:"shop-av-robot",   type:"avatar", name:"Robot Avatar",      price:25,  emoji:"🤖" },
+  { id:"shop-av-alien",   type:"avatar", name:"Alien Avatar",      price:25,  emoji:"👽" },
+  { id:"shop-av-unicorn", type:"avatar", name:"Unicorn Avatar",    price:40,  emoji:"🦄" },
+  { id:"shop-jersey-ice",   type:"jersey", name:"Ice Blue Jersey",      price:40,  color:"#0ea5e9", emoji:"👕" },
+  { id:"shop-jersey-blaze", type:"jersey", name:"Blaze Orange Jersey",  price:40,  color:"#ea580c", emoji:"👕" },
+  { id:"shop-jersey-pink",  type:"jersey", name:"Pink Lightning Jersey",price:60,  color:"#db2777", emoji:"👕" },
+  { id:"shop-jersey-camo",  type:"jersey", name:"Camo Green Jersey",    price:60,  color:"#4d7c0f", emoji:"👕" },
+  { id:"shop-jersey-teal",  type:"jersey", name:"Royal Teal Jersey",    price:80,  color:"#0d9488", emoji:"👕" },
+  { id:"shop-bat-flame",  type:"bat",   name:"Flame Bat",        price:50,  emoji:"🔥", batColor:"#ff5a1f" },
+  { id:"shop-bat-ice",    type:"bat",   name:"Ice Bat",          price:50,  emoji:"🧊", batColor:"#38bdf8" },
+  { id:"shop-bat-galaxy", type:"bat",   name:"Galaxy Bat",       price:90,  emoji:"🌌", batColor:"#a855f7" },
+  { id:"shop-walkup-music",     type:"retro", name:"Walk-Up Music",     price:45,  emoji:"🎵" },
+  { id:"shop-victory-confetti", type:"retro", name:"Victory Confetti",  price:60,  emoji:"🎉" },
+  { id:"shop-gold-bases",   type:"field",  name:"Gold Bases",           price:75,  emoji:"🟨" },
+  { id:"shop-hr-fireworks",     type:"retro", name:"HR Fireworks Show", price:100, emoji:"🎆" },
+];
+const batColorFor = (profile) => {
+  const id = profile && profile.bat;
+  if (!id) return null;
+  const g = GEAR.find((x) => x.id === id) || SHOP.find((x) => x.id === id);
+  return (g && g.batColor) || null;
+};
+const jerseyColorFor = (profile) => {
+  const id = profile && profile.jersey;
+  const g = GEAR.find((x) => x.id === id) || SHOP.find((x) => x.id === id);
+  return (g && g.color) || GEAR[0].color;
+};
 
 // A position is "mastered" (earns its badge) when the player scores at least
 // 8 first-try stars on Hard for that position. (Hard = 10 questions.)
@@ -623,10 +673,10 @@ const CENTER_FIELD = [
     why:"Back up the SS! Middle infielders need backup. (Corner infielders are too far — stay put for those.)",
     hint:"Back up the middle infielders." }),
   SC({ position:"CF", difficulty:"hard", baseSit:"r12", mode:"throw", ballAt:"CF",
-    targets:["first","second","third","home","SS"], correct:"third",
+    targets:["first","second","third","home","SS"], correct:"second",
     prompt:"Runners on first AND second. A base hit to you. Where do you throw?",
-    why:"Throw to THIRD if you can get the lead runner! Otherwise hit SS cutoff.",
-    hint:"Get the lead runner if possible." }),
+    why:"Throw to SECOND base for the force out! It's a much shorter throw for you than third — take the sure out.",
+    hint:"Which force is the SHORTER throw from center field?" }),
   SC({ position:"CF", difficulty:"hard", baseSit:"r3", mode:"throw", ballAt:"CF",
     targets:["first","second","third","home","SS"], correct:"SS",
     prompt:"Runner on third. A base hit drops in front of you. The run is already scoring. Where do you throw?",
@@ -666,10 +716,10 @@ const RIGHT_FIELD = [
     why:"Back up the CENTER fielder! Outfielders back each other up.",
     hint:"Outfielders back each other up." }),
   SC({ position:"RF", difficulty:"hard", baseSit:"r12", mode:"throw", ballAt:"RF",
-    targets:["first","second","third","home","2B"], correct:"third",
+    targets:["first","second","third","home","2B"], correct:"second",
     prompt:"Runners on first AND second. A base hit to right field. Where do you throw?",
-    why:"Throw to THIRD if you can get the lead runner! Otherwise hit the 2B cutoff.",
-    hint:"Lead runner is the priority." }),
+    why:"Throw to SECOND base for the force out! It's a much shorter throw for you than third — take the sure out.",
+    hint:"Which force is the SHORTER throw from right field?" }),
   SC({ position:"RF", difficulty:"hard", baseSit:"r13", mode:"throw", ballAt:"RF",
     targets:["first","second","third","home","2B"], correct:"second",
     prompt:"Runners on first AND third. A base hit to right field. Where do you throw?",
@@ -1307,6 +1357,22 @@ const SCENARIOS = Object.fromEntries(
 SCENARIOS.RUNNER = RUNNER;
 
 // ============================================================
+// ----- First-time tutorial steps (shown after START on first launch) -----
+const TUT_STEPS = [
+  { emoji:"👋", title:"Welcome to Baseball Genius!",
+    text:"Coach Mike built this app to make YOU the smartest player on the field. Here's a quick tour of the dugout!" },
+  { emoji:"🧢", title:"Your Player Card",
+    text:"Tap the card at the top to add your name and pick your avatar. Brothers, sisters, teammates? Tap + Add Player — everyone keeps their own stars, Seeds, and gear!" },
+  { emoji:"🎮", title:"Three Ways to Play",
+    text:"Situational Baseball IQ teaches you the smart play. Retro Ball Game lets you MAKE the plays, video-game style. Baseball Trivia quizzes you on all 30 MLB teams!" },
+  { emoji:"⭐", title:"Stars & Seeds",
+    text:"Smart answers earn ⭐ Stars and 🌻 Seeds. Stars raise your RANK — from Rookie all the way to Hall of Famer. Seeds are your money for shopping!" },
+  { emoji:"🏆", title:"Track Your Progress",
+    text:"The gold banner shows your rank, stars, and badges. Tap the High Score Leaderboard to see who rules the diamond!" },
+  { emoji:"🏪", title:"The Dugout Shop",
+    text:"Spend Seeds on flame bats, jerseys, fireworks and walk-up music — your gear shows up IN the Retro Ball Game. Ready to play ball?" },
+];
+
 // Dragon Coach mascot
 // ============================================================
 // ===== Embedded app artwork (Bruce mascot + base runner) =====
@@ -1315,7 +1381,7 @@ const RUNNER_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAA
 const RUNNER_LEFT_IMG = "data:image/png;base64,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";
 
 function DragonCoach({ size = 96, mood = "happy" }) {
-  // Bruce — the Baseball IQ mascot (user-provided app artwork).
+  // Bruce — the Baseball Genius mascot (user-provided app artwork).
   // "cheer" mood gives a little bounce.
   const cheer = mood === "cheer";
   return (
@@ -1559,8 +1625,260 @@ const needsRehearseForSc = (s) => {
 // ============================================================
 // MAIN APP
 // ============================================================
+// ============================================================
+// SIDE BIT: BASEBALL HISTORY — fun facts + trivia quiz
+// Kid-friendly, timeless facts (no fast-changing records).
+// ============================================================
+const FUN_FACTS = [
+  { emoji: "⚾", text: "A baseball has 108 stitches — all sewn by hand in bright red thread!" },
+  { emoji: "🔢", text: "Jackie Robinson wore number 42. He was so important that EVERY team retired #42 — no one else will ever wear it!" },
+  { emoji: "🎶", text: "During the 7th-inning stretch, fans stand up and sing 'Take Me Out to the Ball Game.'" },
+  { emoji: "💥", text: "Babe Ruth started out as a PITCHER before he became the most famous home run hitter ever!" },
+  { emoji: "🚀", text: "The fastest pitch ever recorded zoomed in at over 105 miles per hour — faster than a car on the highway!" },
+  { emoji: "⏰", text: "Baseball has NO clock. A game isn't over until the final out — it could go on and on!" },
+  { emoji: "🌽", text: "A 'can of corn' is a funny baseball nickname for an easy, lazy fly ball that's simple to catch." },
+  { emoji: "🏟️", text: "The very first World Series was played way back in 1903 — over 120 years ago!" },
+  { emoji: "🧢", text: "The 'bullpen' is the special spot where pitchers warm up before they come into the game." },
+  { emoji: "🥎", text: "A pitcher named Nolan Ryan threw SEVEN no-hitters — more than anyone in baseball history!" },
+  { emoji: "🍿", text: "Fans have been eating Cracker Jack and singing about it at games for more than 100 years!" },
+  { emoji: "🏆", text: "A pitcher named Cy Young won 511 games — a record so huge it may never be broken. There's even an award named after him!" },
+  { emoji: "👟", text: "In the big leagues the bases are 90 feet apart. In Little League they're closer — 60 feet — so you can leg out a hit!" },
+  { emoji: "🧤", text: "The dugout is the covered bench area where your team waits for their turn to bat." },
+];
+
+// ---- MLB TEAM TRIVIA (30 teams + Mixed Challenge) ----
+const MLB_TEAMS = [
+  { id:"NYY", name:"Yankees",      city:"New York",      color:"#0C2340" },
+  { id:"BOS", name:"Red Sox",      city:"Boston",        color:"#BD3039" },
+  { id:"TOR", name:"Blue Jays",    city:"Toronto",       color:"#134A8E" },
+  { id:"BAL", name:"Orioles",      city:"Baltimore",     color:"#DF4601" },
+  { id:"TB",  name:"Rays",         city:"Tampa Bay",     color:"#092C5C" },
+  { id:"CLE", name:"Guardians",    city:"Cleveland",     color:"#00385D" },
+  { id:"DET", name:"Tigers",       city:"Detroit",       color:"#0C2340" },
+  { id:"KC",  name:"Royals",       city:"Kansas City",   color:"#004687" },
+  { id:"MIN", name:"Twins",        city:"Minnesota",     color:"#002B5C" },
+  { id:"CWS", name:"White Sox",    city:"Chicago",       color:"#27251F" },
+  { id:"HOU", name:"Astros",       city:"Houston",       color:"#EB6E1F" },
+  { id:"LAA", name:"Angels",       city:"Los Angeles",   color:"#BA0021" },
+  { id:"OAK", name:"Athletics",    city:"Oakland",       color:"#003831" },
+  { id:"SEA", name:"Mariners",     city:"Seattle",       color:"#0C2C56" },
+  { id:"TEX", name:"Rangers",      city:"Texas",         color:"#003278" },
+  { id:"ATL", name:"Braves",       city:"Atlanta",       color:"#CE1141" },
+  { id:"MIA", name:"Marlins",      city:"Miami",         color:"#00A3E0" },
+  { id:"NYM", name:"Mets",         city:"New York",      color:"#FF5910" },
+  { id:"PHI", name:"Phillies",     city:"Philadelphia",  color:"#E81828" },
+  { id:"WSH", name:"Nationals",    city:"Washington",    color:"#AB0003" },
+  { id:"CHC", name:"Cubs",         city:"Chicago",       color:"#0E3386" },
+  { id:"CIN", name:"Reds",         city:"Cincinnati",    color:"#C6011F" },
+  { id:"MIL", name:"Brewers",      city:"Milwaukee",     color:"#12284B" },
+  { id:"PIT", name:"Pirates",      city:"Pittsburgh",    color:"#FDB827" },
+  { id:"STL", name:"Cardinals",    city:"St. Louis",     color:"#C41E3A" },
+  { id:"ARI", name:"Diamondbacks", city:"Arizona",       color:"#A71930" },
+  { id:"COL", name:"Rockies",      city:"Colorado",      color:"#33006F" },
+  { id:"LAD", name:"Dodgers",      city:"Los Angeles",   color:"#005A9C" },
+  { id:"SD",  name:"Padres",       city:"San Diego",     color:"#2F241D" },
+  { id:"SF",  name:"Giants",       city:"San Francisco", color:"#FD5A1E" },
+];
+
+const TEAM_TRIVIA = {
+  NYY: [
+    { q:"What famous pattern is on the Yankees home uniform?", options:[{label:"Pinstripes",correct:true},{label:"Polka dots"},{label:"Stars"},{label:"Zigzags"}], why:"Pinstripes! The Yankees' thin stripes are the most famous uniform in baseball." },
+    { q:"Which legendary slugger was called 'The Babe' and played for the Yankees?", options:[{label:"Babe Ruth",correct:true},{label:"Babe Lincoln"},{label:"Babe Jordan"},{label:"Babe Brady"}], why:"Babe Ruth! Many call him the greatest home run hitter ever." },
+    { q:"The Yankees have won MORE championships than any other team. About how many?", options:[{label:"27",correct:true},{label:"3"},{label:"9"},{label:"100"}], why:"27 World Series titles — more than any team in baseball!" },
+  ],
+  BOS: [
+    { q:"What is the giant green wall in Boston's ballpark called?", options:[{label:"The Green Monster",correct:true},{label:"The Big Broccoli"},{label:"The Green Giant"},{label:"Mount Boston"}], why:"The Green Monster! Fenway Park's huge left-field wall is 37 feet tall." },
+    { q:"Fenway Park is special because it is MLB's...", options:[{label:"Oldest ballpark",correct:true},{label:"Newest ballpark"},{label:"Biggest ballpark"},{label:"Only indoor park"}], why:"Oldest! Fenway opened way back in 1912 and is still going strong." },
+    { q:"What piece of clothing is in the Red Sox name?", options:[{label:"Socks",correct:true},{label:"Hats"},{label:"Gloves"},{label:"Shoes"}], why:"Socks! The team is named for the bright red socks the players wear." },
+  ],
+  TOR: [
+    { q:"The Blue Jays are the only MLB team from which country?", options:[{label:"Canada",correct:true},{label:"Mexico"},{label:"Japan"},{label:"France"}], why:"Canada! The Blue Jays play in Toronto, north of the border." },
+    { q:"A blue jay is a kind of...", options:[{label:"Bird",correct:true},{label:"Fish"},{label:"Bear"},{label:"Bug"}], why:"A bird! Blue jays are smart, loud birds with bright blue feathers." },
+    { q:"In 1992 and 1993 the Blue Jays did something amazing. What was it?", options:[{label:"Won the World Series twice in a row",correct:true},{label:"Moved to the moon"},{label:"Lost every game"},{label:"Switched to hockey"}], why:"Back-to-back champions! They won it all two years in a row." },
+  ],
+  BAL: [
+    { q:"An oriole is a bird with which team colors?", options:[{label:"Orange and black",correct:true},{label:"Pink and purple"},{label:"Green and gold"},{label:"Red and blue"}], why:"Orange and black — just like the real oriole bird of Maryland!" },
+    { q:"Orioles legend Cal Ripken Jr. was famous for...", options:[{label:"Never missing a game for 16 years",correct:true},{label:"Pitching with both hands"},{label:"Hitting 5 homers in one inning"},{label:"Playing barefoot"}], why:"The Iron Man! Cal played 2,632 games in a row without missing one." },
+    { q:"The Orioles ballpark, Camden Yards, was built next to an old...", options:[{label:"Train warehouse",correct:true},{label:"Castle"},{label:"Spaceship"},{label:"Lighthouse"}], why:"A brick train warehouse! Camden Yards made old-timey ballparks popular again." },
+  ],
+  TB: [
+    { q:"A ray is a flat animal that lives where?", options:[{label:"In the ocean",correct:true},{label:"In trees"},{label:"Underground"},{label:"In volcanoes"}], why:"The ocean! Rays glide through the water like flying carpets." },
+    { q:"The Rays play in which sunny state?", options:[{label:"Florida",correct:true},{label:"Alaska"},{label:"Texas"},{label:"Ohio"}], why:"Florida! Tampa Bay is right on Florida's Gulf coast." },
+    { q:"What is unusual about the Rays' home field, Tropicana Field?", options:[{label:"It has a roof — games are indoors",correct:true},{label:"It floats on water"},{label:"It has no bases"},{label:"It is made of sand"}], why:"It's a dome! The Rays play indoors so Florida storms can't stop the game." },
+  ],
+  CLE: [
+    { q:"The Guardians are named after giant stone statues on a famous Cleveland...", options:[{label:"Bridge",correct:true},{label:"Mountain"},{label:"School"},{label:"Submarine"}], why:"A bridge! The huge 'Guardians of Traffic' statues stand on a bridge near the ballpark." },
+    { q:"Cleveland is in which state?", options:[{label:"Ohio",correct:true},{label:"California"},{label:"Maine"},{label:"Hawaii"}], why:"Ohio! Cleveland sits right on Lake Erie." },
+    { q:"What are Guardians fans famous for banging to make noise?", options:[{label:"A drum",correct:true},{label:"Pots and pans"},{label:"A piano"},{label:"Coconuts"}], why:"A big bass drum! A fan banged a drum at Cleveland games for over 40 years." },
+  ],
+  DET: [
+    { q:"What animal is on the Detroit Tigers logo?", options:[{label:"A tiger",correct:true},{label:"A lion"},{label:"A shark"},{label:"A moose"}], why:"A tiger, of course — fierce with orange and black stripes!" },
+    { q:"The fancy letter on the Tigers cap is which letter?", options:[{label:"D",correct:true},{label:"T"},{label:"X"},{label:"Z"}], why:"The Olde English D — one of the oldest and coolest logos in sports." },
+    { q:"Detroit is nicknamed the Motor City because it is famous for making...", options:[{label:"Cars",correct:true},{label:"Candy"},{label:"Rockets"},{label:"Surfboards"}], why:"Cars! Detroit builds automobiles, so the Tigers play in the Motor City." },
+  ],
+  KC: [
+    { q:"What is on top of the Royals logo?", options:[{label:"A crown",correct:true},{label:"A cowboy hat"},{label:"A bird"},{label:"A baseball glove"}], why:"A crown — Royals means kings and queens!" },
+    { q:"What shoots up high behind the outfield at Royals games?", options:[{label:"Water fountains",correct:true},{label:"Fireworks every pitch"},{label:"Popcorn"},{label:"Basketballs"}], why:"Fountains! Kauffman Stadium has the biggest fountains in baseball." },
+    { q:"Kansas City is famous for which delicious food?", options:[{label:"Barbecue",correct:true},{label:"Sushi"},{label:"Snow cones"},{label:"Spaghetti"}], why:"Barbecue! KC is one of the barbecue capitals of the world." },
+  ],
+  MIN: [
+    { q:"The Twins are named for the 'Twin Cities.' Which two cities are they?", options:[{label:"Minneapolis and St. Paul",correct:true},{label:"Dallas and Houston"},{label:"Miami and Orlando"},{label:"Boston and New York"}], why:"Minneapolis and St. Paul — two cities side by side, like twins!" },
+    { q:"What two letters are on the Twins cap?", options:[{label:"TC",correct:true},{label:"MN"},{label:"TW"},{label:"XY"}], why:"TC — it stands for Twin Cities!" },
+    { q:"Minnesota winters are famous for being very...", options:[{label:"Cold and snowy",correct:true},{label:"Hot and sandy"},{label:"Rainy and green"},{label:"Windy and purple"}], why:"Cold! That's why the Twins' early-season games can be downright freezing." },
+  ],
+  CWS: [
+    { q:"The White Sox play on which side of Chicago?", options:[{label:"South Side",correct:true},{label:"North Side"},{label:"Under the lake"},{label:"Downtown rooftops"}], why:"The South Side! Their crosstown rivals, the Cubs, play on the North Side." },
+    { q:"What are the White Sox main colors?", options:[{label:"Black and white",correct:true},{label:"Pink and green"},{label:"Orange and teal"},{label:"Gold and purple"}], why:"Black and white — simple and sharp!" },
+    { q:"After a White Sox player hits a home run at home, the scoreboard...", options:[{label:"Shoots off fireworks and spins pinwheels",correct:true},{label:"Plays a lullaby"},{label:"Turns upside down"},{label:"Hides"}], why:"The exploding scoreboard! Pinwheels spin and fireworks pop after every Sox homer." },
+  ],
+  HOU: [
+    { q:"The Astros are named after astronauts. What does Houston have that explains why?", options:[{label:"NASA space center",correct:true},{label:"The biggest zoo"},{label:"A chocolate factory"},{label:"The tallest mountain"}], why:"NASA! Houston is Space City — even the astronauts say 'Houston' on the radio." },
+    { q:"What used to roll across the wall at Astros home games after homers?", options:[{label:"A train",correct:true},{label:"A monster truck"},{label:"A rowboat"},{label:"A dragon"}], why:"A real train! It rides the tracks above left field at Minute Maid Park." },
+    { q:"What is the Astros mascot, Orbit?", options:[{label:"A green space alien",correct:true},{label:"A brown bear"},{label:"A robot dog"},{label:"A talking taco"}], why:"A fuzzy green alien with antennas — straight from outer space!" },
+  ],
+  LAA: [
+    { q:"What floats above the letter A in the Angels logo?", options:[{label:"A halo",correct:true},{label:"A cloud"},{label:"A crown"},{label:"A baseball"}], why:"A halo — angels wear halos, so the A does too!" },
+    { q:"What funny animal do Angels fans cheer with when the team needs runs?", options:[{label:"The Rally Monkey",correct:true},{label:"The Rally Rhino"},{label:"The Rally Penguin"},{label:"The Rally Worm"}], why:"The Rally Monkey! It jumps on the big screen when the Angels need a comeback." },
+    { q:"Superstar Mike Trout plays which position for the Angels?", options:[{label:"Center field",correct:true},{label:"Catcher"},{label:"Pitcher"},{label:"First base"}], why:"Center field! Trout patrols the middle of the outfield like a superhero." },
+  ],
+  OAK: [
+    { q:"What are the Athletics two main colors?", options:[{label:"Green and gold",correct:true},{label:"Red and black"},{label:"Blue and white"},{label:"Pink and gray"}], why:"Green and gold — some of the brightest uniforms in baseball!" },
+    { q:"What surprising animal is a longtime Athletics symbol?", options:[{label:"An elephant",correct:true},{label:"A giraffe"},{label:"A whale"},{label:"A chicken"}], why:"An elephant! It's been the A's good-luck symbol for over 100 years." },
+    { q:"What is the short nickname for the Athletics?", options:[{label:"The A's",correct:true},{label:"The Ath's"},{label:"The Letics"},{label:"The Cs"}], why:"The A's! Even their caps just say a big letter A." },
+  ],
+  SEA: [
+    { q:"A mariner is a person who works where?", options:[{label:"On ships at sea",correct:true},{label:"In a bakery"},{label:"On a farm"},{label:"In a castle"}], why:"On ships! Seattle is a famous port city, so its team honors sailors." },
+    { q:"What is the Mariners mascot?", options:[{label:"The Mariner Moose",correct:true},{label:"The Seattle Squid"},{label:"The Rainy Raccoon"},{label:"Captain Crab"}], why:"The Mariner Moose — a goofy moose in a baseball jersey!" },
+    { q:"Mariners legend Ichiro came to Seattle from which country?", options:[{label:"Japan",correct:true},{label:"Brazil"},{label:"Italy"},{label:"Egypt"}], why:"Japan! Ichiro became one of the greatest hitters baseball has ever seen." },
+  ],
+  TEX: [
+    { q:"The Texas Rangers are named after famous Texas...", options:[{label:"Lawmen on horseback",correct:true},{label:"Chefs"},{label:"Astronauts"},{label:"Surfers"}], why:"Lawmen! The real Texas Rangers protected Texas way back in cowboy days." },
+    { q:"In 2023 the Rangers finally won their first ever...", options:[{label:"World Series",correct:true},{label:"Spelling bee"},{label:"Soccer cup"},{label:"Hot dog contest"}], why:"World Series! After 60+ years, Texas finally took home the trophy." },
+    { q:"Texas summers are so hot that the Rangers ballpark has...", options:[{label:"A roof that closes",correct:true},{label:"Snow machines"},{label:"An indoor lake"},{label:"Umbrella hats for all"}], why:"A retractable roof — they close it and crank the AC on scorching days!" },
+  ],
+  ATL: [
+    { q:"Braves legend Hank Aaron was famous for hitting 755...", options:[{label:"Home runs",correct:true},{label:"Bunts"},{label:"Foul balls"},{label:"Pop-ups"}], why:"755 home runs! Hammerin' Hank broke Babe Ruth's all-time record." },
+    { q:"Atlanta is the capital of which state?", options:[{label:"Georgia",correct:true},{label:"Nevada"},{label:"Vermont"},{label:"Oregon"}], why:"Georgia — the Peach State!" },
+    { q:"What do Braves fans do with their arms during big moments?", options:[{label:"The Tomahawk Chop",correct:true},{label:"The Chicken Dance"},{label:"The Robot"},{label:"Jazz hands"}], why:"The chop! Thousands of fans swing their arms together while chanting." },
+  ],
+  MIA: [
+    { q:"A marlin is a giant ocean fish with what on its face?", options:[{label:"A long pointy bill like a sword",correct:true},{label:"A mustache"},{label:"Glasses"},{label:"A tiny trumpet"}], why:"A sword-like bill! Marlins are some of the fastest fish in the sea." },
+    { q:"The Marlins play in which beachy Florida city?", options:[{label:"Miami",correct:true},{label:"Chicago"},{label:"Denver"},{label:"Seattle"}], why:"Miami — sunshine, beaches, and baseball!" },
+    { q:"What can the Marlins ballpark do when it rains?", options:[{label:"Close its roof",correct:true},{label:"Float away"},{label:"Turn into a pool"},{label:"Shrink"}], why:"Close the roof! Miami storms can't rain out a Marlins game." },
+  ],
+  NYM: [
+    { q:"What pops up behind the fence when a Met hits a home run at home?", options:[{label:"A giant apple",correct:true},{label:"A giant banana"},{label:"A rocket"},{label:"A pizza"}], why:"The Home Run Apple! A huge red apple rises up after every Mets homer." },
+    { q:"What does the Mets mascot, Mr. Met, have for a head?", options:[{label:"A baseball",correct:true},{label:"A basketball"},{label:"A pumpkin"},{label:"A TV"}], why:"A giant baseball head — with a smile painted on!" },
+    { q:"The Mets colors are blue and orange, borrowed from two old New York teams. Which ones?", options:[{label:"Dodgers and Giants",correct:true},{label:"Cowboys and Eagles"},{label:"Lakers and Bulls"},{label:"Sharks and Jets"}], why:"Dodger blue + Giant orange! Both teams left New York, and the Mets kept their colors." },
+  ],
+  PHI: [
+    { q:"What is the Phillies famous fuzzy green mascot called?", options:[{label:"The Phillie Phanatic",correct:true},{label:"The Philly Frog"},{label:"Green Gary"},{label:"The Cheesesteak Kid"}], why:"The Phillie Phanatic — maybe the silliest, most famous mascot in sports!" },
+    { q:"What rings and lights up when a Phillie hits a home run at home?", options:[{label:"A giant Liberty Bell",correct:true},{label:"A school bell"},{label:"A doorbell"},{label:"An alarm clock"}], why:"A glowing Liberty Bell — Philadelphia is the home of the real one!" },
+    { q:"Philadelphia is famous for which sandwich?", options:[{label:"The cheesesteak",correct:true},{label:"The jelly burger"},{label:"The pickle pocket"},{label:"The marshmallow melt"}], why:"The cheesesteak! Thin beef and melted cheese on a roll — a Philly classic." },
+  ],
+  WSH: [
+    { q:"The Nationals play in Washington D.C., which is our country's...", options:[{label:"Capital city",correct:true},{label:"Biggest beach"},{label:"Tallest mountain"},{label:"Oldest farm"}], why:"The capital! The President lives just a few miles from the ballpark." },
+    { q:"What race happens in the middle of Nationals home games?", options:[{label:"Giant racing presidents",correct:true},{label:"Racing dinosaurs"},{label:"Racing hot dogs"},{label:"Racing robots"}], why:"The Presidents Race! Giant-headed Washington, Lincoln, Jefferson and Teddy sprint around the field." },
+    { q:"What kind of bird is the Nationals mascot, Screech?", options:[{label:"A bald eagle",correct:true},{label:"A penguin"},{label:"A flamingo"},{label:"A turkey"}], why:"A bald eagle — America's bird for America's capital team!" },
+  ],
+  CHC: [
+    { q:"What grows all over the outfield walls at Wrigley Field?", options:[{label:"Ivy",correct:true},{label:"Pizza"},{label:"Roses"},{label:"Moss monsters"}], why:"Ivy! Wrigley's brick walls are covered in beautiful green ivy." },
+    { q:"In 2016 the Cubs ended the longest championship wait ever. How long was it?", options:[{label:"108 years",correct:true},{label:"2 years"},{label:"20 years"},{label:"1,000 years"}], why:"108 years! When the Cubs finally won in 2016, Chicago threw one of the biggest parties ever." },
+    { q:"A cub is a baby...", options:[{label:"Bear",correct:true},{label:"Duck"},{label:"Horse"},{label:"Kangaroo"}], why:"Bear! That's why the Cubs logo has a cute little bear." },
+  ],
+  CIN: [
+    { q:"The Cincinnati Reds were baseball's FIRST...", options:[{label:"Professional team",correct:true},{label:"Team to play on the moon"},{label:"All-robot team"},{label:"Team with no bats"}], why:"First pro team ever — way back in 1869, before cars existed!" },
+    { q:"The Reds mascot Mr. Redlegs has a baseball head and a big old-timey...", options:[{label:"Mustache",correct:true},{label:"Beard to his knees"},{label:"Top hat"},{label:"Monocle"}], why:"A handlebar mustache — just like players wore in the 1800s!" },
+    { q:"What color are the Reds named after?", options:[{label:"Red",correct:true},{label:"Turquoise"},{label:"Silver"},{label:"Lime green"}], why:"Red, of course! It started with their famous red stockings." },
+  ],
+  MIL: [
+    { q:"What does Bernie Brewer do when a Brewer hits a home run?", options:[{label:"Slides down a big yellow slide",correct:true},{label:"Does 100 push-ups"},{label:"Bakes a cake"},{label:"Falls asleep"}], why:"He slides! Bernie zooms down his slide above the outfield after every homer." },
+    { q:"What race happens at every Brewers home game?", options:[{label:"The Racing Sausages",correct:true},{label:"The Racing Cheeses"},{label:"The Racing Snowmen"},{label:"The Racing Pencils"}], why:"The Famous Racing Sausages! A bratwurst, hot dog and friends sprint around the warning track." },
+    { q:"The Brewers ballpark roof in Milwaukee can...", options:[{label:"Open and close like a giant fan",correct:true},{label:"Bounce"},{label:"Change colors"},{label:"Fly away"}], why:"Open and close! The roof folds open on sunny days and shuts when it storms." },
+  ],
+  PIT: [
+    { q:"What do pirates traditionally say?", options:[{label:"ARRR!",correct:true},{label:"MOO!"},{label:"BEEP BOOP!"},{label:"LA LA LA!"}], why:"ARRR, matey! Pittsburgh's team is full of Buccos — short for buccaneers!" },
+    { q:"Pirates legend Roberto Clemente was famous for his rocket...", options:[{label:"Throwing arm",correct:true},{label:"Sneakers"},{label:"Bicycle"},{label:"Backpack"}], why:"His arm! Clemente threw runners out from deep right field — and was a hero off the field too." },
+    { q:"Big home runs at the Pirates park can splash into the...", options:[{label:"River",correct:true},{label:"Swimming pool"},{label:"Soup pot"},{label:"Fountain of juice"}], why:"The Allegheny River! It flows right behind the right-field wall at PNC Park." },
+  ],
+  STL: [
+    { q:"What is sitting on the yellow bat in the Cardinals logo?", options:[{label:"Two red birds",correct:true},{label:"Two cats"},{label:"Two frogs"},{label:"Two hot dogs"}], why:"Two cardinals! The red birds perched on a bat are a baseball classic." },
+    { q:"Cardinals fans are so polite and baseball-smart that St. Louis is called...", options:[{label:"The best baseball town",correct:true},{label:"The quietest town"},{label:"Basketball City"},{label:"The land of naps"}], why:"Many call St. Louis the best baseball town in America — the fans even clap for great plays by the other team!" },
+    { q:"In the National League, no team has won MORE championships than the...", options:[{label:"Cardinals",correct:true},{label:"Marlins"},{label:"Rockies"},{label:"Padres"}], why:"The Cardinals! Only the Yankees have more World Series wins than St. Louis." },
+  ],
+  ARI: [
+    { q:"A diamondback is a kind of...", options:[{label:"Rattlesnake",correct:true},{label:"Eagle"},{label:"Cactus"},{label:"Lizard king"}], why:"A rattlesnake! Diamondbacks have diamond shapes on their backs — perfect for a baseball team." },
+    { q:"What can fans do in the outfield at the Diamondbacks ballpark?", options:[{label:"Swim in a pool",correct:true},{label:"Ride camels"},{label:"Build sandcastles"},{label:"Go ice skating"}], why:"Swim! There is a real swimming pool just past the right-field fence." },
+    { q:"Arizona is famous for its hot, sandy...", options:[{label:"Desert",correct:true},{label:"Rainforest"},{label:"Glaciers"},{label:"Swamps"}], why:"Desert! Cactuses, scorching sun — that's why their ballpark has a roof and AC." },
+  ],
+  COL: [
+    { q:"The Rockies are named after which giant mountains?", options:[{label:"The Rocky Mountains",correct:true},{label:"The Candy Mountains"},{label:"The Andes"},{label:"Mount Cupcake"}], why:"The Rockies! Denver sits right at the foot of the Rocky Mountains." },
+    { q:"Denver is called the Mile High City. Why do baseballs FLY there?", options:[{label:"The thin mountain air",correct:true},{label:"Magnets under the field"},{label:"Super bouncy bats"},{label:"Strong fans blowing"}], why:"Thin air! A mile above sea level, the air is thinner, so the ball travels farther — home run heaven!" },
+    { q:"What is the Rockies main color?", options:[{label:"Purple",correct:true},{label:"Neon yellow"},{label:"Brown"},{label:"Hot pink"}], why:"Purple — like purple mountain majesties!" },
+  ],
+  LAD: [
+    { q:"Before moving to Los Angeles, the Dodgers played in which New York borough?", options:[{label:"Brooklyn",correct:true},{label:"Texas"},{label:"Miami"},{label:"Canada"}], why:"Brooklyn! The Dodgers moved from Brooklyn to LA in 1958." },
+    { q:"Which hero broke baseball's color barrier with the Dodgers in 1947?", options:[{label:"Jackie Robinson",correct:true},{label:"George Washington"},{label:"Mickey Mouse"},{label:"Paul Bunyan"}], why:"Jackie Robinson — number 42, one of the bravest and most important players ever." },
+    { q:"What famous food do fans munch at Dodger Stadium?", options:[{label:"Dodger Dogs",correct:true},{label:"Dodger Donuts"},{label:"Dodger Dumplings"},{label:"Dodger Pickles"}], why:"Dodger Dogs! The extra-long hot dogs are an LA tradition." },
+  ],
+  SD: [
+    { q:"What does 'Padres' mean in Spanish?", options:[{label:"Fathers",correct:true},{label:"Tigers"},{label:"Waves"},{label:"Cousins"}], why:"Fathers! It honors the Spanish friars who founded San Diego long ago." },
+    { q:"What unusual colors do the Padres famously wear?", options:[{label:"Brown and gold",correct:true},{label:"Pink and silver"},{label:"Black and neon green"},{label:"Rainbow stripes"}], why:"Brown and gold — no other MLB team rocks brown like San Diego!" },
+    { q:"The Padres mascot is a friar who is always...", options:[{label:"Swinging a bat",correct:true},{label:"Sleeping"},{label:"Juggling fish"},{label:"Riding a skateboard"}], why:"The Swinging Friar — he's been taking mighty cuts since the team began!" },
+  ],
+  SF: [
+    { q:"When a Giant hits a long home run to right field, where can it land?", options:[{label:"In the bay, where kayakers wait",correct:true},{label:"On a train"},{label:"In a volcano"},{label:"On the Golden Gate Bridge"}], why:"McCovey Cove! Fans float in kayaks hoping to catch a 'splash hit.'" },
+    { q:"Giants legend Willie Mays made 'The Catch' — a famous grab made how?", options:[{label:"Over his shoulder, running full speed",correct:true},{label:"With his eyes closed"},{label:"Behind his back"},{label:"With his cap"}], why:"Over the shoulder at a dead sprint — maybe the most famous catch in baseball history!" },
+    { q:"Before San Francisco, the Giants played in which city?", options:[{label:"New York",correct:true},{label:"Phoenix"},{label:"Nashville"},{label:"Honolulu"}], why:"New York! The Giants headed west to San Francisco in 1958, same year the Dodgers moved." },
+  ],
+};
+const ALL_TEAM_QUESTIONS = Object.keys(TEAM_TRIVIA).reduce((arr, k) => arr.concat(TEAM_TRIVIA[k]), []);
+
+const HISTORY_QUIZ = [
+  { q: "What number did Jackie Robinson wear?",
+    options: [{ label: "42", correct: true }, { label: "3" }, { label: "7" }, { label: "99" }],
+    why: "Number 42! It's so special that every team retired it forever." },
+  { q: "How many stitches are on a baseball?",
+    options: [{ label: "108", correct: true }, { label: "12" }, { label: "50" }, { label: "500" }],
+    why: "108 stitches, all sewn by hand in red thread!" },
+  { q: "What do fans sing during the 7th-inning stretch?",
+    options: [{ label: "Take Me Out to the Ball Game", correct: true }, { label: "Happy Birthday" }, { label: "The ABCs" }, { label: "Twinkle Twinkle" }],
+    why: "'Take Me Out to the Ball Game' — a baseball tradition!" },
+  { q: "What is the San Diego Padres' mascot called?",
+    options: [{ label: "The Swinging Friar", correct: true }, { label: "The Padre Parrot" }, { label: "The Brown Bear" }, { label: "Mr. Baseball" }],
+    why: "The Swinging Friar! He's been cheering on San Diego since way back in 1958." },
+  { q: "How fast was the fastest pitch ever thrown?",
+    options: [{ label: "Over 105 mph", correct: true }, { label: "50 mph" }, { label: "75 mph" }, { label: "200 mph" }],
+    why: "Over 105 mph — faster than a car on the highway!" },
+  { q: "What ends a baseball game?",
+    options: [{ label: "The final out", correct: true }, { label: "A buzzer" }, { label: "A clock hitting zero" }, { label: "Halftime" }],
+    why: "There's no clock — the game ends on the final out!" },
+  { q: "What is the 'bullpen'?",
+    options: [{ label: "Where pitchers warm up", correct: true }, { label: "Where the cows are" }, { label: "The snack bar" }, { label: "The parking lot" }],
+    why: "It's where pitchers warm up before entering the game." },
+  { q: "When was the very first World Series played?",
+    options: [{ label: "1903", correct: true }, { label: "2003" }, { label: "1850" }, { label: "Last year" }],
+    why: "1903 — more than 120 years ago!" },
+  { q: "What's an easy fly ball called?",
+    options: [{ label: "A can of corn", correct: true }, { label: "A hot potato" }, { label: "A home run" }, { label: "A strikeout" }],
+    why: "A 'can of corn' — an easy, lazy fly ball!" },
+  { q: "Which pitcher threw the most no-hitters ever?",
+    options: [{ label: "Nolan Ryan", correct: true }, { label: "Babe Ruth" }, { label: "Jackie Robinson" }, { label: "Cy Young" }],
+    why: "Nolan Ryan — seven no-hitters!" },
+  { q: "What do you call a home run with the bases loaded?",
+    options: [{ label: "A grand slam", correct: true }, { label: "A touchdown" }, { label: "A jackpot" }, { label: "A bullseye" }],
+    why: "A grand slam — the biggest hit in baseball, scoring four runs at once!" },
+  { q: "Where does your team wait for their turn to bat?",
+    options: [{ label: "The dugout", correct: true }, { label: "The bullpen" }, { label: "The outfield" }, { label: "The press box" }],
+    why: "The dugout — the covered bench area!" },
+];
+
 export default function App() {
-  const [screen, setScreen] = useState("home"); // home | difficulty | play | done | settings
+  const [screen, setScreen] = useState("splash"); // splash | landing | home | difficulty | play | done | settings | funzone | coach
+  const [tutSeen, setTutSeen] = useState(false);   // first-time tutorial flag (persisted)
+  const [showTut, setShowTut] = useState(false);
+  const [tutStep, setTutStep] = useState(0);
+  const finishTut = () => { setShowTut(false); setTutStep(0); if (!tutSeen) setTutSeen(true); };
   const [position, setPosition] = useState(null);
   const [difficulty, setDifficulty] = useState(null);
   const [queue, setQueue] = useState([]);
@@ -1583,7 +1901,24 @@ export default function App() {
   const [cutaway, setCutaway] = useState(null);         // { phrase } action overlay on correct answers | null
   // ----- Coach Mode: custom questions (stored on-device, free) -----
   const [customScenarios, setCustomScenarios] = useState([]); // array of custom MC scenario objects
+  const [profile, setProfile] = useState({ name:"", avatar:"⚾", jersey:"jersey-navy", bat:null }); // ACTIVE player profile
+  const [allProfiles, setAllProfiles] = useState([]); // every saved player (each keeps own stars/seeds/gear)
+  const [activeId, setActiveId] = useState(null);
+  const activeIdRef = useRef(null);
+  const [seeds, setSeeds] = useState(0);     // 🌻 Seeds — spendable currency (never affects rank)
+  const [owned, setOwned] = useState([]);    // Dugout purchases (item ids)
   const [editorDraft, setEditorDraft] = useState(null);       // the question being created/edited, or null (list view)
+  // ----- Side bit: Baseball History (fun facts + trivia) -----
+  const [funTab, setFunTab] = useState("facts");      // "facts" | "quiz"
+  const [factIdx, setFactIdx] = useState(0);
+  const [histQueue, setHistQueue] = useState([]);
+  const [triviaSel, setTriviaSel] = useState(null);   // team id | "mixed" | null (= show picker)
+  const [triviaMult, setTriviaMult] = useState(1);    // mixed mode pays double stars
+  const [histIdx, setHistIdx] = useState(0);
+  const [histChosen, setHistChosen] = useState(null); // index of tapped option | null
+  const [histResult, setHistResult] = useState(null); // "correct" | "wrong" | null
+  const [histScore, setHistScore] = useState(0);
+  const [histDone, setHistDone] = useState(false);
   const [lightning, setLightning] = useState(false);    // true while a lightning round is active
   const [combo, setCombo] = useState(0);                // lightning streak counter
   const rewardsLoaded = useRef(false);
@@ -1611,17 +1946,16 @@ export default function App() {
 
   const needsRehearse = needsRehearseForSc;
 
-  // ----- Persist rewards + custom questions on-device (survives between sessions) -----
+  // ----- Persist rewards on-device (multi-profile: each player keeps their own progress) -----
   // Works in two environments:
   //  • Claude app artifact   -> uses window.storage (async key/value API)
   //  • Web / Vercel deploy    -> falls back to localStorage
   const STORE_KEY = "ddiq-rewards";
-  const loadRewards = async () => {
+  const loadRaw = async () => {
     try {
       if (typeof window !== "undefined" && window.storage && window.storage.get) {
         const res = await window.storage.get(STORE_KEY);
-        if (res && res.value) return JSON.parse(res.value);
-        return null;
+        return res && res.value ? JSON.parse(res.value) : null;
       }
     } catch (e) { /* fall through to localStorage */ }
     try {
@@ -1632,7 +1966,7 @@ export default function App() {
     } catch (e) { /* storage blocked (private mode etc.) */ }
     return null;
   };
-  const saveRewards = async (data) => {
+  const saveRaw = async (data) => {
     const json = JSON.stringify(data);
     try {
       if (typeof window !== "undefined" && window.storage && window.storage.set) {
@@ -1646,20 +1980,46 @@ export default function App() {
       }
     } catch (e) { /* storage unavailable — keep in-memory only */ }
   };
-
+  const hydrateProfile = (act) => {
+    activeIdRef.current = act.id; setActiveId(act.id);
+    setProfile({ name: act.name || "", avatar: act.avatar || "⚾", jersey: act.jersey || "jersey-navy", bat: act.bat || null });
+    setTotalStars(act.totalStars || 0); setBadges(act.badges || {}); setCleared(act.cleared || {});
+    setProgress(act.progress || {}); setSeeds(act.seeds || 0);
+    setOwned(Array.isArray(act.owned) ? act.owned : []);
+  };
+  const freshProfile = (id) => ({ id, name:"", avatar:"⚾", jersey:"jersey-navy", bat:null,
+    totalStars:0, badges:{}, cleared:{}, progress:{}, seeds:0, owned:[] });
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      let list = null;
       try {
-        const data = await loadRewards();
+        const data = await loadRaw();
         if (!cancelled && data) {
-          setTotalStars(data.totalStars || 0);
-          setBadges(data.badges || {});
-          setCleared(data.cleared || {});
-          setProgress(data.progress || {});
+          setTutSeen(!!data.tutSeen);
+          if (Array.isArray(data.profiles) && data.profiles.length) {
+            list = data.profiles;
+          } else {
+            // Migrate an old single-player save into profile #1.
+            const pr = data.profile || {};
+            list = [{ id:"p1", name: pr.name || "", avatar: pr.avatar || "⚾", jersey: pr.jersey || "jersey-navy", bat: pr.bat || null,
+              totalStars: data.totalStars || 0, badges: data.badges || {}, cleared: data.cleared || {},
+              progress: data.progress || {}, seeds: data.seeds || 0,
+              owned: Array.isArray(data.owned) ? data.owned : [] }];
+          }
           setCustomScenarios(Array.isArray(data.custom) ? data.custom : []);
+          const act = list.find((p) => p.id === data.activeId) || list[0];
+          setAllProfiles(list);
+          hydrateProfile(act);
         }
+      } catch (e) {
+        // No saved data yet — start fresh.
       } finally {
+        if (!cancelled && !list) {
+          const first = freshProfile("p1");
+          setAllProfiles([first]);
+          hydrateProfile(first);
+        }
         rewardsLoaded.current = true;
       }
     })();
@@ -1667,16 +2027,105 @@ export default function App() {
     // eslint-disable-next-line
   }, []);
 
+  // Save whenever rewards change (after the initial load).
   useEffect(() => {
     if (!rewardsLoaded.current) return;
-    saveRewards({ totalStars, badges, cleared, progress, custom: customScenarios });
+    const merged = allProfiles.map((p) => p.id === activeIdRef.current
+      ? { id: p.id, name: profile.name, avatar: profile.avatar, jersey: profile.jersey, bat: profile.bat || null,
+          totalStars, badges, cleared, progress, seeds, owned }
+      : p);
+    saveRaw({ profiles: merged, activeId: activeIdRef.current, custom: customScenarios, tutSeen });
     // eslint-disable-next-line
-  }, [totalStars, badges, cleared, progress, customScenarios]);
+  }, [totalStars, badges, cleared, progress, customScenarios, profile, seeds, owned, allProfiles, activeId, tutSeen]);
+
+  // Switch / add players (each profile keeps its OWN stars, Seeds, gear).
+  const switchProfile = (id) => {
+    if (id === activeIdRef.current) return;
+    const merged = allProfiles.map((p) => p.id === activeIdRef.current
+      ? { id: p.id, name: profile.name, avatar: profile.avatar, jersey: profile.jersey, bat: profile.bat || null,
+          totalStars, badges, cleared, progress, seeds, owned }
+      : p);
+    const next = merged.find((p) => p.id === id);
+    if (!next) return;
+    setAllProfiles(merged);
+    prevRankNameRef.current = rankForStars(next.totalStars || 0).name; // no fake LEVEL UP on switch
+    hydrateProfile(next);
+  };
+  const addProfile = () => {
+    if (allProfiles.length >= 6) return;
+    const merged = allProfiles.map((p) => p.id === activeIdRef.current
+      ? { id: p.id, name: profile.name, avatar: profile.avatar, jersey: profile.jersey, bat: profile.bat || null,
+          totalStars, badges, cleared, progress, seeds, owned }
+      : p);
+    const fresh = freshProfile("p" + Date.now());
+    setAllProfiles([...merged, fresh]);
+    prevRankNameRef.current = "Rookie";
+    hydrateProfile(fresh);
+  };
+
+  // 🏆 HIGH SCORE LEADERBOARD
+  // In the Claude artifact: stored SHARED (everyone sees one board).
+  // On the deployed website: stored per-device via localStorage — ready to be
+  // swapped to a tiny backend (e.g. Supabase) for a true team-wide board.
+  const [leaderboard, setLeaderboard] = useState([]);
+  const LB_KEY = "ddiq-leaderboard";
+  const lbRead = async () => {
+    try {
+      if (window.storage && window.storage.get) {
+        const res = await window.storage.get(LB_KEY, true);
+        return res && res.value ? JSON.parse(res.value) : [];
+      }
+    } catch (e) { /* key missing or storage unavailable */ }
+    try {
+      const raw = window.localStorage && window.localStorage.getItem(LB_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  };
+  const lbWrite = async (list) => {
+    const json = JSON.stringify(list);
+    try {
+      if (window.storage && window.storage.set) { await window.storage.set(LB_KEY, json, true); return; }
+    } catch (e) {}
+    try { window.localStorage && window.localStorage.setItem(LB_KEY, json); } catch (e) {}
+  };
+  useEffect(() => { (async () => { try { setLeaderboard(await lbRead()); } catch (e) {} })();
+    // eslint-disable-next-line
+  }, []);
+  const lbSubmit = (score, mode) => {
+    if (!score || score <= 0) return;
+    (async () => {
+      try {
+        const list = await lbRead();
+        list.push({ n: (profile.name || "Player").slice(0, 14), a: profile.avatar || "⚾", s: score, m: mode, t: Date.now() });
+        list.sort((x, y) => (y.s - x.s) || (x.t - y.t));
+        const top = list.slice(0, 25);
+        await lbWrite(top);
+        setLeaderboard(top);
+      } catch (e) {}
+    })();
+  };
+
+  // 🎉 LEVEL UP! flash — fires on ANY rank-up (quiz, lightning, trivia, retro)
+  const [levelUp, setLevelUp] = useState(null);
+  const prevRankNameRef = useRef(null);
+  useEffect(() => {
+    if (!rewardsLoaded.current) return;
+    const r = rankForStars(totalStars);
+    if (prevRankNameRef.current === null) { prevRankNameRef.current = r.name; return; }
+    if (r.name !== prevRankNameRef.current) {
+      prevRankNameRef.current = r.name;
+      setLevelUp(r);
+      setTimeout(() => { try { sfxCheer(); } catch (e) {} }, 60);
+      setTimeout(() => setLevelUp(null), 3000);
+    }
+    // eslint-disable-next-line
+  }, [totalStars]);
 
   const soundRef = useRef(soundOn); soundRef.current = soundOn;
   const ambienceRef = useRef(null); // holds the looping stadium-murmur source while batting
   const audioRef = useRef(null);
   const voiceRef = useRef(null);
+  const lastSpokenRef = useRef("");
   const sc = queue[idx];
 
   // Pick the best-sounding voice once they load. Browsers load voices async,
@@ -1801,8 +2250,27 @@ export default function App() {
       try { audioRef.current = new (window.AudioContext || window.webkitAudioContext)(); }
       catch (e) { audioRef.current = null; }
     }
+    // iOS starts contexts "suspended" until resumed inside a user gesture —
+    // without this, every sound silently no-ops (e.g. the Retro Ball Game).
+    try {
+      if (audioRef.current && audioRef.current.state === "suspended") {
+        audioRef.current.resume().catch(() => {});
+      }
+    } catch (e) {}
     return audioRef.current;
   };
+
+  // One global unlock: the first tap anywhere resumes audio + speech engines,
+  // so ambience/sfx started by timers (Retro mount) become audible.
+  useEffect(() => {
+    const unlock = () => {
+      try { getCtx(); } catch (e) {}
+      try { window.speechSynthesis && window.speechSynthesis.resume(); } catch (e) {}
+    };
+    document.addEventListener("pointerdown", unlock, true);
+    return () => document.removeEventListener("pointerdown", unlock, true);
+    // eslint-disable-next-line
+  }, []);
   const tone = (freq, start, dur, type = "triangle", gain = 0.14) => {
     if (!soundRef.current) return;
     const ctx = getCtx(); if (!ctx) return;
@@ -1943,11 +2411,18 @@ export default function App() {
     } catch (e) {}
   };
 
-  const speak = (text) => {
-    if (!soundRef.current) return;
+  const speak = (text, onDone) => {
+    // onDone fires when the voice has FINISHED (never cut off by a guess-timer).
+    // If voice is muted or unavailable, we fall back to a comfortable reading delay.
+    let finished = false;
+    const finish = () => { if (finished) return; finished = true; onDone && onDone(); };
+    const readDelay = Math.min(5200, Math.max(1400, (text || "").length * 45));
+    if (!soundRef.current) { if (onDone) setTimeout(finish, readDelay); return; }
     try {
-      const s = window.speechSynthesis; if (!s) return;
+      const s = window.speechSynthesis;
+      if (!s) { if (onDone) setTimeout(finish, readDelay); return; }
       s.cancel();
+      lastSpokenRef.current = text;
       const u = new SpeechSynthesisUtterance(expandPositions(text));
       if (voiceRef.current) {
         u.voice = voiceRef.current;
@@ -1960,21 +2435,24 @@ export default function App() {
       u.rate = 1.04;
       u.pitch = 1.28;
       u.volume = 1;
+      if (onDone) {
+        u.onend = finish;
+        u.onerror = finish;
+        setTimeout(finish, estimateSpeechMs(text) + 1800); // safety net if onend never fires
+      }
       s.speak(u);
-    } catch (e) {}
+    } catch (e) { finish(); }
   };
   const stopSpeak = () => { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} };
 
-  // Estimate how long it takes to speak a string (ms), so we don't cut off the
-  // explanation before switching to the "give it to the pitcher" step.
-  // ~13 chars/sec at our rate, clamped to a sensible range. +1000ms pause after.
+  // Estimate how long it takes to speak a string (ms). Used ONLY as a safety
+  // net behind the speech engine's real "finished" event. ~12 chars/sec.
   const estimateSpeechMs = (text) => {
     if (!text) return 1500;
     const chars = expandPositions(text).length;
-    const ms = Math.round((chars / 13) * 1000);
-    return Math.min(9000, Math.max(2200, ms));
+    const ms = Math.round((chars / 12) * 1000);
+    return Math.min(16000, Math.max(2200, ms));
   };
-  const rehearseDelay = (sc) => Math.round((estimateSpeechMs(`Yes! ${sc.why}`) + 500) * 0.65);
 
   // ---- SCENARIO LIFECYCLE ----
   useEffect(() => {
@@ -1996,7 +2474,7 @@ export default function App() {
       const landDelay = sc.variant === "hard" ? 410 : 870;
       setTimeout(() => { sfxPop(); setPuff({ x: target.x, y: target.y, key: Date.now() }); }, landDelay);
       const speakDelay = sc.variant === "hard" ? 470 : 920;
-      setTimeout(() => speak(sc.prompt), speakDelay);
+      setTimeout(() => speak(`You're the ${sc.position}! ${sc.prompt}`), speakDelay);
     } else if (sc.mode === "cover") {
       const target = displayedPos(sc.ballAt, sc) || POS[sc.ballAt];
       const fromBatter = { x: 215, y: 318 };
@@ -2008,14 +2486,14 @@ export default function App() {
           arrivePos: target });
       }, 90);
       setTimeout(() => { sfxPop(); setPuff({ x: target.x, y: target.y, key: Date.now() }); }, 870);
-      setTimeout(() => speak(sc.prompt), 920);
+      setTimeout(() => speak(`You're the ${sc.position}! ${sc.prompt}`), 920);
     } else if (sc.mode === "popup") {
       setBallPath(null);
-      setTimeout(() => speak(sc.prompt), 250);
+      setTimeout(() => speak(`You're the ${sc.position}! ${sc.prompt}`), 250);
     } else if (sc.mode === "baserun") {
       // Base running: no hit/ball flight. Just show the runner and ask.
       setBallPath(null);
-      setTimeout(() => speak(sc.prompt), 250);
+      setTimeout(() => speak(`You're the ${sc.position}! ${sc.prompt}`), 250);
     }
   // eslint-disable-next-line
   }, [screen, idx, queue]);
@@ -2112,17 +2590,18 @@ export default function App() {
           awardBonus(sc, firstTryMC);
           fireCutaway();
           sfxOut();
-          speak(`Yes! ${sc.why}`);
           setResult("correct");
           // Outfielder cover scenarios skip rehearse (already handled by needsRehearseForSc)
           if (needsRehearseForSc(sc)) {
             setPhase("reveal");
-            setTimeout(() => {
+            // Wait until the FULL spoken explanation finishes before moving on.
+            speak(`Yes! ${sc.why}`, () => setTimeout(() => {
               if (sc.position === "P") setBallPath(null); // ball shown as tappable target instead
               setPhase("rehearse");
               speak(sc.position === "P" ? "Now tap the ball — the pitcher will run over and get it!" : "Now tap the pitcher to stop the play!");
-            }, rehearseDelay(sc));
+            }, 500));
           } else {
+            speak(`Yes! ${sc.why}`);
             setPhase("done");
           }
         } else {
@@ -2160,17 +2639,18 @@ export default function App() {
         awardBonus(sc, firstTry);
         fireCutaway();
         sfxOut();
-        speak(`Yes! ${sc.why}`);
         setResult("correct");
 
         if (needsRehearse(sc)) {
           setPhase("reveal");
-          setTimeout(() => {
+          // Wait until the FULL spoken explanation finishes before moving on.
+          speak(`Yes! ${sc.why}`, () => setTimeout(() => {
             if (sc.position === "P") setBallPath(null); // ball shown as tappable target instead
             setPhase("rehearse");
             speak(sc.position === "P" ? "Now tap the ball — the pitcher will run over and get it!" : "Now tap the pitcher to stop the play!");
-          }, rehearseDelay(sc));
+          }, 500));
         } else {
+          speak(`Yes! ${sc.why}`);
           setPhase("done");
         }
       } else {
@@ -2198,7 +2678,7 @@ export default function App() {
         setBallPath({ from: fromBatter, to: target, type, id: nextPathId(), arrivePos: target });
       }, 90);
     }
-    setTimeout(() => speak(sc.prompt), 100);
+    setTimeout(() => speak(`You're the ${sc.position}! ${sc.prompt}`), 100);
   };
 
   const next = () => {
@@ -2219,11 +2699,14 @@ export default function App() {
         const prevTotal = totalStars;
         const newTotal = prevTotal + bonusStars;
         setTotalStars(newTotal);
+        setSeeds((sd) => sd + bonusStars * 2); // 🌻 2 Seeds per star earned
+        lbSubmit(bonusStars, "quiz");
         const prevRank = rankForStars(prevTotal);
         const newRank = rankForStars(newTotal);
         if (newRank.name !== prevRank.name) {
+          setSeeds((sd) => sd + 25); // rank-up bonus
           setRewardPopup({ type: "rank", emoji: newRank.emoji,
-            title: `New Rank: ${newRank.name}!`, sub: `You've earned ${newTotal} stars.` });
+            title: `New Rank: ${newRank.name}!`, sub: `You've earned ${newTotal} stars — and 🌻 25 bonus Seeds!` });
         }
         setTimeout(sfxCheer, 200);
         setScreen("done");
@@ -2237,6 +2720,8 @@ export default function App() {
       const prevTotal = totalStars;
       const newTotal = prevTotal + stars + bonusStars;
       setTotalStars(newTotal);
+      setSeeds((sd) => sd + (stars + bonusStars) * 2); // 🌻 2 Seeds per star earned
+      lbSubmit(stars + bonusStars, "quiz");
 
       const rewards = []; // queued celebrations
 
@@ -2244,8 +2729,9 @@ export default function App() {
       const prevRank = rankForStars(prevTotal);
       const newRank = rankForStars(newTotal);
       if (newRank.name !== prevRank.name) {
+        setSeeds((sd) => sd + 25); // rank-up bonus
         rewards.push({ type: "rank", emoji: newRank.emoji,
-          title: `New Rank: ${newRank.name}!`, sub: `You've earned ${newTotal} stars.` });
+          title: `New Rank: ${newRank.name}!`, sub: `You've earned ${newTotal} stars — and 🌻 25 bonus Seeds!` });
       }
 
       // Difficulty cleared?
@@ -2455,6 +2941,67 @@ export default function App() {
     setScreen("play");
   };
 
+  // ----- Side bit: Baseball History helpers -----
+  const openFunZone = () => {
+    sfxClick();
+    setHistQueue([]); setHistDone(false); setTriviaSel(null); setFunTab("quiz");
+    setScreen("funzone");
+  };
+  const nextFact = () => {
+    sfxClick();
+    setFactIdx((i) => {
+      if (FUN_FACTS.length < 2) return i;
+      let n = i;
+      while (n === i) n = Math.floor(Math.random() * FUN_FACTS.length);
+      return n;
+    });
+  };
+  const startHistoryQuiz = () => {
+    sfxClick();
+    const q = [...HISTORY_QUIZ].sort(() => Math.random() - 0.5).slice(0, 8);
+    setHistQueue(q); setHistIdx(0); setHistChosen(null); setHistResult(null);
+    setHistScore(0); setHistDone(false); setFunTab("quiz");
+  };
+  const startTeamQuiz = (teamId) => {
+    sfxClick();
+    setTriviaSel(teamId); setTriviaMult(1);
+    const q = [...(TEAM_TRIVIA[teamId] || [])].sort(() => Math.random() - 0.5);
+    setHistQueue(q); setHistIdx(0); setHistChosen(null); setHistResult(null);
+    setHistScore(0); setHistDone(false); setFunTab("quiz");
+  };
+  const startMixedQuiz = () => {
+    sfxClick();
+    setTriviaSel("mixed"); setTriviaMult(2);
+    const q = [...ALL_TEAM_QUESTIONS, ...HISTORY_QUIZ].sort(() => Math.random() - 0.5).slice(0, 10);
+    setHistQueue(q); setHistIdx(0); setHistChosen(null); setHistResult(null);
+    setHistScore(0); setHistDone(false); setFunTab("quiz");
+  };
+  const backToTeamPicker = () => { sfxClick(); setHistQueue([]); setHistDone(false); setTriviaSel(null); };
+  const answerHist = (i) => {
+    if (histResult) return; // already answered this question
+    const correct = !!histQueue[histIdx].options[i].correct;
+    setHistChosen(i);
+    setHistResult(correct ? "correct" : "wrong");
+    if (correct) {
+      sfxCheer();
+      setHistScore((s) => s + 1);
+      setTotalStars((s) => s + triviaMult);              // mixed mode = DOUBLE stars
+      setSeeds((sd) => sd + (triviaMult === 2 ? 3 : 2)); // 🌻 and extra Seeds in mixed
+    } else {
+      sfxWrong();
+    }
+  };
+  const nextHist = () => {
+    sfxClick();
+    if (histIdx + 1 < histQueue.length) {
+      setHistIdx((i) => i + 1); setHistChosen(null); setHistResult(null);
+    } else {
+      sfxCheer();
+      setHistDone(true);
+      lbSubmit(histScore * triviaMult, "trivia");
+    }
+  };
+
   // Award bonus stars on a correct answer (surprise bonus play, or any
   // correct answer during a lightning round). Returns nothing; updates state.
   // Brief MLB-style action cutaway shown on every correct answer (~1.2s overlay).
@@ -2504,6 +3051,241 @@ export default function App() {
 
   // ---- HOME: pick position ----
   // ---- TROPHY CASE ----
+  if (screen === "leaders") {
+    const MODE_META = { retro: { e: "🕹️", n: "Retro Game" }, quiz: { e: "⚾", n: "Situational IQ" }, trivia: { e: "📚", n: "Trivia" } };
+    const isShared = typeof window !== "undefined" && !!window.storage;
+    const medal = (i) => (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`);
+    return (
+      <div style={page}>
+        <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
+        <div style={{ ...card, padding: "20px 18px 24px" }}>
+          <button className="press" onClick={() => { sfxClick(); setScreen("landing"); }}
+            style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", fontSize: 14, padding: "7px 12px", marginBottom: 14 }}>
+            ← Back
+          </button>
+          <h1 style={{ textAlign: "center", margin: "0 0 4px", fontSize: 25, fontWeight: 800, color: "#b45309" }}>
+            🏆 High Score Leaderboard
+          </h1>
+          <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", fontWeight: 600, margin: "0 0 14px" }}>
+            {isShared ? "Best single-game stars — shared with everyone playing!" : "Best single-game stars on this device"}
+          </p>
+          {leaderboard.length === 0 ? (
+            <div style={{ textAlign: "center", background: "#fffbeb", border: "2px dashed #fcd34d",
+              borderRadius: 16, padding: "26px 16px" }}>
+              <div style={{ fontSize: 40 }}>🏆</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#b45309", marginTop: 6 }}>No scores yet!</div>
+              <div style={{ fontSize: 13, color: "#92740e", fontWeight: 600, marginTop: 4 }}>
+                Finish a game to claim the top spot.
+              </div>
+            </div>
+          ) : (
+            <div>
+              {leaderboard.slice(0, 10).map((e, i) => {
+                const mm = MODE_META[e.m] || { e: "⭐", n: "Game" };
+                return (
+                  <div key={e.t + "-" + i} style={{ display: "flex", alignItems: "center", gap: 9,
+                    background: i === 0 ? "#fffbeb" : "#f8fafc",
+                    border: `2px solid ${i === 0 ? "#f59e0b" : "#e2e8f0"}`,
+                    borderRadius: 14, padding: "8px 10px", marginBottom: 6 }}>
+                    <div style={{ width: 30, textAlign: "center", fontSize: i < 3 ? 20 : 14, fontWeight: 800, color: "#64748b" }}>
+                      {medal(i)}
+                    </div>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", flex: "0 0 auto",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17,
+                      background: "#dbeafe" }}>
+                      {e.a}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0f2747", whiteSpace: "nowrap",
+                        overflow: "hidden", textOverflow: "ellipsis" }}>{e.n}</div>
+                      <div style={{ fontSize: 10.5, fontWeight: 600, color: "#94a3b8" }}>
+                        {mm.e} {mm.n} · {new Date(e.t).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#b45309" }}>⭐ {e.s}</div>
+                  </div>
+                );
+              })}
+              <p style={{ textAlign: "center", fontSize: 11.5, color: "#94a3b8", fontWeight: 600, margin: "10px 0 0" }}>
+                Score big in any game to crack the Top 10!
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "dugout") {
+    const buy = (item) => {
+      if (owned.includes(item.id) || seeds < item.price) return;
+      sfxCheer();
+      setSeeds((sd) => sd - item.price);
+      setOwned((o) => [...o, item.id]);
+      if (item.type === "jersey") setProfile((p) => ({ ...p, jersey: item.id }));
+      if (item.type === "avatar") setProfile((p) => ({ ...p, avatar: item.emoji }));
+      if (item.type === "bat") setProfile((p) => ({ ...p, bat: item.id }));
+    };
+    return (
+      <div style={page}>
+        <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
+        <div style={{ ...card, padding: "20px 18px 24px" }}>
+          <button className="press" onClick={() => { sfxClick(); setScreen("landing"); }}
+            style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", fontSize: 14, padding: "7px 12px", marginBottom: 14 }}>
+            ← Back
+          </button>
+          <h1 style={{ textAlign: "center", margin: "0 0 4px", fontSize: 26, fontWeight: 800, color: "#7c4a12" }}>
+            🏪 The Dugout
+          </h1>
+          <div style={{ textAlign: "center", marginBottom: 12 }}>
+            <span style={{ display: "inline-block", background: "linear-gradient(135deg,#7c4a12,#b45309)",
+              color: "#fff", fontWeight: 800, fontSize: 16, borderRadius: 12, padding: "7px 16px",
+              boxShadow: "0 3px 0 #5b3409" }}>
+              🌻 {seeds} Seeds
+            </span>
+            <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600, marginTop: 6 }}>
+              Earn Seeds by answering questions, making plays, and scoring runs!
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {SHOP.map((it) => {
+              const has = owned.includes(it.id);
+              const canBuy = !has && seeds >= it.price;
+              const equipped = (it.type === "jersey" && profile.jersey === it.id) ||
+                               (it.type === "avatar" && profile.avatar === it.emoji) ||
+                               (it.type === "bat" && profile.bat === it.id);
+              return (
+                <button key={it.id} className="press"
+                  onClick={() => {
+                    if (!has) { buy(it); return; }
+                    if (it.type === "jersey") { sfxClick(); setProfile((p) => ({ ...p, jersey: it.id })); }
+                    if (it.type === "avatar") { sfxClick(); setProfile((p) => ({ ...p, avatar: it.emoji })); }
+                    if (it.type === "bat") { sfxClick(); setProfile((p) => ({ ...p, bat: it.id })); }
+                  }}
+                  disabled={!has && !canBuy}
+                  style={{ display: "flex", alignItems: "center", gap: 8, textAlign: "left",
+                    background: has ? "#fffbeb" : canBuy ? "#fff" : "#f1f5f9",
+                    border: `2px solid ${equipped ? "#f59e0b" : has ? "#fcd34d" : canBuy ? "#cbd5e1" : "#e2e8f0"}`,
+                    borderRadius: 14, padding: "8px 9px", fontFamily: "inherit",
+                    cursor: has || canBuy ? "pointer" : "default", opacity: has || canBuy ? 1 : 0.6 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, flex: "0 0 auto",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17,
+                    background: it.type === "jersey" ? it.color : it.type === "bat" ? it.batColor : "#fef3c7" }}>
+                    {it.type === "jersey" ? "" : it.emoji}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: has || canBuy ? "#0f2747" : "#94a3b8", lineHeight: 1.15 }}>
+                      {it.name}
+                    </div>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: equipped ? "#d97706" : has ? "#b45309" : canBuy ? "#15803d" : "#94a3b8" }}>
+                      {equipped ? "✓ EQUIPPED" : has ? (it.type === "jersey" || it.type === "avatar" || it.type === "bat" ? "Owned — tap to use" : "Owned ✓") : `🌻 ${it.price} — ${canBuy ? "Tap to buy!" : "Keep earning!"}`}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <p style={{ textAlign: "center", fontSize: 11.5, color: "#94a3b8", margin: "14px 0 0", fontWeight: 600 }}>
+            Bats, jerseys, Gold Bases, fireworks, confetti & walk-up music all show up in the Retro Ball Game. Seeds never affect your rank — spend freely!
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "profile") {
+    return (
+      <div style={page}>
+        <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
+        <div style={{ ...card, padding: "20px 18px 24px" }}>
+          <button className="press" onClick={() => { sfxClick(); setScreen("landing"); }}
+            style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", fontSize: 14, padding: "7px 12px", marginBottom: 14 }}>
+            ← Back
+          </button>
+          <h1 style={{ textAlign: "center", margin: "0 0 10px", fontSize: 26, fontWeight: 800, color: "#1e3a8a" }}>
+            ⭐ Your Player Card
+          </h1>
+          {/* Switch between players — each keeps their OWN stars, Seeds & gear */}
+          <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", letterSpacing: 0.8,
+            textTransform: "uppercase", margin: "0 0 6px 2px" }}>
+            Who's playing?
+          </div>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 6 }}>
+            {allProfiles.map((p) => {
+              const isActive = p.id === activeId;
+              const label = isActive ? (profile.name || "New Player") : (p.name || "New Player");
+              const av = isActive ? profile.avatar : (p.avatar || "⚾");
+              return (
+                <button key={p.id} className="press" onClick={() => { sfxClick(); switchProfile(p.id); }}
+                  style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit",
+                    background: isActive ? "#fffbeb" : "#f8fafc", cursor: "pointer",
+                    border: `2.5px solid ${isActive ? "#f59e0b" : "#e2e8f0"}`,
+                    borderRadius: 999, padding: "5px 11px 5px 6px" }}>
+                  <span style={{ width: 26, height: 26, borderRadius: "50%", display: "flex",
+                    alignItems: "center", justifyContent: "center", fontSize: 14,
+                    background: isActive ? jerseyColorFor(profile) : "#dbeafe" }}>{av}</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: isActive ? "#b45309" : "#475569" }}>
+                    {label}{isActive ? " ✓" : ""}
+                  </span>
+                </button>
+              );
+            })}
+            {allProfiles.length < 6 && (
+              <button className="press" onClick={() => { sfxClick(); addProfile(); }}
+                style={{ fontFamily: "inherit", background: "#eff6ff", cursor: "pointer",
+                  border: "2.5px dashed #93c5fd", borderRadius: 999, padding: "5px 13px",
+                  fontSize: 12.5, fontWeight: 800, color: "#1d4ed8" }}>
+                + Add Player
+              </button>
+            )}
+          </div>
+          <p style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, margin: "0 0 12px 2px" }}>
+            Each player keeps their own ⭐ stars, 🌻 Seeds, rank and gear!
+          </p>
+          <div style={{ textAlign: "center", marginBottom: 14 }}>
+            <div style={{ width: 84, height: 84, borderRadius: "50%", margin: "0 auto",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 46,
+              background: jerseyColorFor(profile), border: "4px solid #fbbf24",
+              boxShadow: "0 6px 14px rgba(0,0,0,0.18)" }}>
+              {profile.avatar}
+            </div>
+            <div style={{ fontSize: 13, color: "#64748b", fontWeight: 600, marginTop: 6 }}>
+              Jersey color comes from your Locker (Trophy Case)
+            </div>
+          </div>
+          <label style={{ display: "block", fontSize: 14, fontWeight: 800, color: "#0f2747", marginBottom: 6 }}>
+            Your name
+          </label>
+          <input value={profile.name} maxLength={14} placeholder="Type your name…"
+            onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
+            style={{ width: "100%", boxSizing: "border-box", fontFamily: "inherit", fontSize: 17,
+              fontWeight: 700, padding: "11px 12px", borderRadius: 12, border: "2px solid #cbd5e1",
+              marginBottom: 14, color: "#0f2747" }} />
+          <div style={{ fontSize: 14, fontWeight: 800, color: "#0f2747", marginBottom: 8 }}>
+            Pick your picture
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 18 }}>
+            {AVATARS.concat(SHOP.filter((s) => s.type === "avatar" && owned.includes(s.id)).map((s) => s.emoji)).map((a) => (
+              <button key={a} className="press" onClick={() => { sfxClick(); setProfile((p) => ({ ...p, avatar: a })); }}
+                style={{ fontSize: 27, padding: "10px 0", borderRadius: 14, fontFamily: "inherit", cursor: "pointer",
+                  background: profile.avatar === a ? "#fffbeb" : "#f8fafc",
+                  border: `3px solid ${profile.avatar === a ? "#f59e0b" : "#e2e8f0"}` }}>
+                {a}
+              </button>
+            ))}
+          </div>
+          <button className="press" onClick={() => { sfxClick(); setScreen("landing"); }}
+            style={{ ...bigBtn("#22c55e", "#15803d"), width: "100%", fontSize: 18, padding: "13px 0" }}>
+            ✅ Save my player card
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (screen === "trophies") {
     const rank = rankForStars(totalStars);
     const nr = nextRankFor(totalStars);
@@ -2514,8 +3296,9 @@ export default function App() {
     return (
       <div style={page}>
         <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
         <div style={{ ...card, padding: "20px 18px 24px" }}>
-          <button className="press" onClick={() => { sfxClick(); setScreen("home"); }}
+          <button className="press" onClick={() => { sfxClick(); setScreen("landing"); }}
             style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", fontSize: 14, padding: "7px 12px", marginBottom: 14 }}>
             ← Back
           </button>
@@ -2538,8 +3321,85 @@ export default function App() {
             </div>
           </div>
 
+          {/* The Path: every rank, visible from day one */}
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: "#0f2747", margin: "14px 0 8px" }}>
+            🗺️ Your Path
+          </h2>
+          <div style={{ background: "#f8fafc", border: "2px solid #e2e8f0", borderRadius: 16, padding: "10px 12px" }}>
+            {RANKS.map((t, i) => {
+              const achieved = totalStars >= t.min;
+              const isCurrent = rank.name === t.name;
+              return (
+                <div key={t.name} style={{ display: "flex", alignItems: "center", gap: 10,
+                  padding: "7px 8px", borderRadius: 12, marginBottom: i < RANKS.length-1 ? 2 : 0,
+                  background: isCurrent ? "#fffbeb" : "transparent",
+                  border: isCurrent ? "2px solid #f59e0b" : "2px solid transparent" }}>
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", flex: "0 0 auto",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19,
+                    background: achieved ? "#dbeafe" : "#e2e8f0",
+                    filter: achieved ? "none" : "grayscale(100%)", opacity: achieved ? 1 : 0.65 }}>
+                    {t.emoji}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: achieved ? "#1e3a8a" : "#94a3b8" }}>
+                      {t.name} {isCurrent && <span style={{ color: "#d97706", fontSize: 11.5 }}>← YOU ARE HERE</span>}
+                    </div>
+                    <div style={{ fontSize: 11.5, fontWeight: 600, color: achieved ? "#64748b" : "#94a3b8" }}>
+                      {t.min === 0 ? "Where every player starts" : `Unlocks at ⭐ ${t.min} stars`}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 15 }}>{achieved ? "✅" : "🔒"}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Locker: gear earned along the way */}
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: "#0f2747", margin: "16px 0 4px" }}>
+            🧰 Your Locker
+          </h2>
+          <p style={{ fontSize: 12.5, color: "#64748b", margin: "0 0 10px", fontWeight: 500 }}>
+            Earn gear at each rank! Tap a jersey to suit up — it changes YOUR team's colors in the Retro Ball Game.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {GEAR.map((g) => {
+              const unlocked = totalStars >= g.min;
+              const equipped = (g.type === "jersey" && profile.jersey === g.id) || (g.batColor && profile.bat === g.id);
+              const needRank = RANKS.filter(t => t.min <= g.min).pop();
+              return (
+                <button key={g.id} className="press" disabled={!unlocked || (g.type !== "jersey" && !g.batColor)}
+                  onClick={() => {
+                    if (!unlocked) return;
+                    if (g.type === "jersey") { sfxClick(); setProfile(p => ({ ...p, jersey: g.id })); }
+                    else if (g.batColor) { sfxClick(); setProfile(p => ({ ...p, bat: g.id })); }
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, textAlign: "left",
+                    background: unlocked ? (equipped ? "#fffbeb" : "#fff") : "#f1f5f9",
+                    border: `2px solid ${equipped ? "#f59e0b" : unlocked ? "#cbd5e1" : "#e2e8f0"}`,
+                    borderRadius: 14, padding: "8px 9px", fontFamily: "inherit",
+                    cursor: unlocked && g.type === "jersey" ? "pointer" : "default", opacity: unlocked ? 1 : 0.65 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, flex: "0 0 auto",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17,
+                    background: g.type === "jersey" ? g.color : "#e2e8f0",
+                    filter: unlocked ? "none" : "grayscale(100%)" }}>
+                    {g.type === "jersey" ? "" : g.emoji}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: unlocked ? "#0f2747" : "#94a3b8", lineHeight: 1.15 }}>
+                      {g.name}
+                    </div>
+                    <div style={{ fontSize: 10.5, fontWeight: 600, color: unlocked ? "#d97706" : "#94a3b8" }}>
+                      {unlocked ? (equipped ? "✓ EQUIPPED" : (g.type === "jersey" || g.batColor ? "Tap to equip" : "Unlocked!"))
+                                : `🔒 ${needRank.emoji} ${needRank.name} (⭐${g.min})`}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
           {/* Badges */}
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: "#0f2747", margin: "8px 0 8px" }}>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: "#0f2747", margin: "16px 0 8px" }}>
             🏅 Position Badges ({Object.keys(badges).filter(p => playablePositions.includes(p)).length}/9)
           </h2>
           <p style={{ fontSize: 12.5, color: "#64748b", margin: "0 0 10px", fontWeight: 500 }}>
@@ -2575,55 +3435,264 @@ export default function App() {
     );
   }
 
+  // ---- LANDING (pick an experience) ----
+  // ----- SPLASH: opening screen — one big START button (also unlocks audio on iOS) -----
+  if (screen === "splash") {
+    return (
+      <div style={{ ...page, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <style>{styleSheet}</style>
+        <div style={{ ...card, padding: "30px 22px 26px", textAlign: "center" }}>
+          <img src={BRUCE_IMG} alt="Bruce the Baseball Genius" width={165} height={165}
+            style={{ display: "block", margin: "0 auto 4px" }} />
+          <h1 style={{ margin: "4px 0 2px", fontSize: 34, color: "#1e3a8a", letterSpacing: 0.5, fontFamily: "inherit" }}>
+            Baseball <span style={{ color: "#f0b429" }}>Genius</span>
+          </h1>
+          <div style={{ fontSize: 14.5, color: "#475569", fontWeight: 600, marginBottom: 22 }}>
+            Learn the game. Make the play. Become a genius!
+          </div>
+          <button onClick={() => { playJingle(); setScreen("landing");
+              if (!tutSeen) { setTutStep(0); setShowTut(true); } }} className="press"
+            style={{ width: "100%", maxWidth: 280, padding: "16px 10px", fontSize: 25, fontWeight: 900,
+              fontFamily: "inherit", color: "#fff", background: "#22c55e", border: "3px solid #15803d",
+              borderRadius: 16, cursor: "pointer", letterSpacing: 1.5,
+              animation: "btnpulse 1.6s ease-in-out infinite" }}>
+            ▶ START
+          </button>
+          <div style={{ marginTop: 18, fontSize: 12, color: "#94a3b8", fontWeight: 700 }}>
+            Built by Coach Mike
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "landing") {
+    const rank = rankForStars(totalStars);
+    return (
+      <div style={page}>
+        <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
+        {showTut && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.78)", zIndex: 90,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+            <div style={{ background: "#fff", borderRadius: 20, border: "3px solid #1e3a8a",
+              boxShadow: "0 10px 0 rgba(0,0,0,0.25)", padding: "22px 18px 16px",
+              maxWidth: 340, width: "100%", textAlign: "center" }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#94a3b8", letterSpacing: 1, marginBottom: 4 }}>
+                QUICK TOUR · {tutStep + 1}/{TUT_STEPS.length}
+              </div>
+              <div style={{ fontSize: 46, marginBottom: 6 }}>{TUT_STEPS[tutStep].emoji}</div>
+              <div style={{ fontWeight: 900, fontSize: 19, color: "#1e3a8a", marginBottom: 8 }}>
+                {TUT_STEPS[tutStep].title}
+              </div>
+              <div style={{ fontSize: 14.5, color: "#334155", lineHeight: 1.55, minHeight: 90 }}>
+                {TUT_STEPS[tutStep].text}
+              </div>
+              <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "14px 0" }}>
+                {TUT_STEPS.map((_, i) => (
+                  <span key={i} style={{ width: 9, height: 9, borderRadius: "50%",
+                    background: i === tutStep ? "#f0b429" : "#cbd5e1",
+                    border: i === tutStep ? "1.5px solid #b45309" : "1.5px solid #94a3b8" }} />
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                {tutStep < TUT_STEPS.length - 1 && (
+                  <button onClick={() => { sfxClick(); finishTut(); }} className="press"
+                    style={{ flex: 1, padding: "11px 8px", fontSize: 14, fontWeight: 800, fontFamily: "inherit",
+                      color: "#64748b", background: "#f1f5f9", border: "2px solid #94a3b8", borderRadius: 12,
+                      cursor: "pointer", boxShadow: "0 3px 0 #94a3b8" }}>Skip</button>
+                )}
+                <button onClick={() => { sfxClick(); if (tutStep < TUT_STEPS.length - 1) setTutStep(s => s + 1); else finishTut(); }}
+                  className="press"
+                  style={{ flex: 2, padding: "11px 8px", fontSize: 15, fontWeight: 900, fontFamily: "inherit",
+                    color: "#fff", background: tutStep < TUT_STEPS.length - 1 ? "#1e3a8a" : "#22c55e",
+                    border: "2px solid " + (tutStep < TUT_STEPS.length - 1 ? "#172d6e" : "#15803d"),
+                    borderRadius: 12, cursor: "pointer",
+                    boxShadow: "0 3px 0 " + (tutStep < TUT_STEPS.length - 1 ? "#172d6e" : "#15803d") }}>
+                  {tutStep < TUT_STEPS.length - 1 ? "Next ➜" : "▶️ Let's Play!"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        <div style={{ ...card, padding: "22px 18px 26px", position: "relative" }}>
+          <button onClick={() => { sfxClick(); setScreen("settings"); }} className="press"
+            style={{ position: "absolute", top: 14, right: 14, zIndex: 10, background: "#fff",
+              border: "2px solid #94a3b8", borderRadius: 12, padding: "6px 10px",
+              fontSize: 18, cursor: "pointer", fontFamily: "inherit", lineHeight: 1,
+              boxShadow: "0 3px 0 #94a3b8" }}>⚙️</button>
+          <button onClick={() => { sfxClick(); setTutStep(0); setShowTut(true); }} className="press"
+            style={{ position: "absolute", top: 14, right: 64, zIndex: 10, background: "#fff",
+              border: "2px solid #38bdf8", borderRadius: 12, padding: "6px 10px",
+              fontSize: 18, cursor: "pointer", fontFamily: "inherit", lineHeight: 1,
+              boxShadow: "0 3px 0 #38bdf8" }}>❓</button>
+          <button onClick={() => { playJingle(); }} className="press"
+            style={{ position: "absolute", top: 14, left: 14, zIndex: 10, background: "#fff",
+              border: "2px solid #f59e0b", borderRadius: 12, padding: "6px 10px",
+              fontSize: 18, cursor: "pointer", fontFamily: "inherit", lineHeight: 1,
+              boxShadow: "0 3px 0 #f59e0b" }}>🎵</button>
+
+          <div style={{ display: "flex", justifyContent: "center", animation: "float 3s ease-in-out infinite" }}>
+            <DragonCoach size={96} />
+          </div>
+          <h1 style={{ textAlign: "center", margin: "8px 0 2px", fontSize: 30, fontWeight: 700, color: "#1e3a8a", letterSpacing: -0.5 }}>
+            Baseball Genius
+          </h1>
+          <p style={{ textAlign: "center", margin: "0 0 18px", fontSize: 15, color: "#475569", fontWeight: 500 }}>
+            Pick a game, check progress, or shop at The Dugout!
+          </p>
+
+          {/* Rank banner — tap to open the Trophy Case */}
+          <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", letterSpacing: 0.8,
+            textTransform: "uppercase", margin: "0 0 4px 4px" }}>
+            Profile
+          </div>
+          <button onClick={() => { sfxClick(); setScreen("profile"); }} className="press"
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%",
+              background: "#fff", border: "2px solid #e2e8f0",
+              borderRadius: 16, padding: "8px 12px", marginBottom: 10, cursor: "pointer",
+              fontFamily: "inherit", textAlign: "left" }}>
+            <div style={{ width: 42, height: 42, borderRadius: "50%", flex: "0 0 auto",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 23,
+              background: jerseyColorFor(profile), border: "3px solid #fbbf24" }}>
+              {profile.avatar}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#0f2747" }}>
+                {profile.name ? `Let's go, ${profile.name}!` : "Who's playing today?"}
+              </div>
+              <div style={{ fontSize: 11.5, color: "#94a3b8", fontWeight: 600 }}>Tap to edit or switch players</div>
+            </div>
+            <span style={{ fontSize: 16 }}>✏️</span>
+          </button>
+
+          {/* Games */}
+          <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", letterSpacing: 0.8,
+            textTransform: "uppercase", margin: "0 0 4px 4px" }}>
+            Games
+          </div>
+          <button onClick={() => { sfxClick(); setScreen("home"); }} className="press"
+            style={{ display: "flex", alignItems: "center", gap: 12, width: "100%",
+              background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", border: "none",
+              borderRadius: 18, padding: "18px 16px", marginBottom: 12, cursor: "pointer",
+              fontFamily: "inherit", boxShadow: "0 5px 0 #1e3a8a", textAlign: "left" }}>
+            <span style={{ fontSize: 38, lineHeight: 1 }}>⚾</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>Situational Baseball IQ</div>
+              <div style={{ fontSize: 13, color: "#dbeafe", fontWeight: 600 }}>Learn what to do on every play — pick your position!</div>
+            </div>
+            <span style={{ fontSize: 20, color: "#fff" }}>→</span>
+          </button>
+
+          <button onClick={() => { sfxClick(); setScreen("retro"); }} className="press"
+            style={{ display: "flex", alignItems: "center", gap: 12, width: "100%",
+              background: "linear-gradient(135deg,#92400e,#f59e0b)", border: "none",
+              borderRadius: 18, padding: "18px 16px", marginBottom: 12, cursor: "pointer",
+              fontFamily: "inherit", boxShadow: "0 5px 0 #78350f", textAlign: "left" }}>
+            <span style={{ fontSize: 38, lineHeight: 1 }}>🕹️</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>Retro Ball Game</div>
+              <div style={{ fontSize: 13, color: "#fef3c7", fontWeight: 600 }}>Call the play — then MAKE the play!</div>
+            </div>
+            <span style={{ fontSize: 20, color: "#fff" }}>→</span>
+          </button>
+
+          <button onClick={openFunZone} className="press"
+            style={{ display: "flex", alignItems: "center", gap: 12, width: "100%",
+              background: "linear-gradient(135deg,#0e7490,#06b6d4)", border: "none",
+              borderRadius: 18, padding: "18px 16px", marginBottom: 12, cursor: "pointer",
+              fontFamily: "inherit", boxShadow: "0 5px 0 #155e75", textAlign: "left" }}>
+            <span style={{ fontSize: 38, lineHeight: 1 }}>📚</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#fff" }}>Baseball Trivia</div>
+              <div style={{ fontSize: 13, color: "#cffafe", fontWeight: 600 }}>Fun facts + a history quiz challenge!</div>
+            </div>
+            <span style={{ fontSize: 20, color: "#fff" }}>→</span>
+          </button>
+
+          <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", letterSpacing: 0.8,
+            textTransform: "uppercase", margin: "8px 0 4px 4px" }}>
+            Progress Level
+          </div>
+          <button onClick={() => { sfxClick(); setScreen("trophies"); }} className="press"
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%",
+              background: "linear-gradient(135deg,#1e3a8a,#2563eb)", border: "none",
+              borderRadius: 16, padding: "10px 14px", marginBottom: 18, cursor: "pointer",
+              fontFamily: "inherit", boxShadow: "0 4px 0 #15296b", textAlign: "left" }}>
+            <div style={{ fontSize: 28, lineHeight: 1 }}>{rank.emoji}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{rank.name}</div>
+              <div style={{ fontSize: 12, color: "#bfdbfe", fontWeight: 600 }}>⭐ {totalStars} stars · 🌻 {seeds} Seeds · 🏅 {Object.keys(badges).length}/9</div>
+            </div>
+            <div style={{ fontSize: 20 }}>🏆</div>
+          </button>
+
+          <button onClick={() => { sfxClick(); setScreen("leaders"); }} className="press"
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%",
+              background: "linear-gradient(135deg,#92400e,#d97706)", border: "none",
+              borderRadius: 16, padding: "10px 14px", marginBottom: 18, marginTop: -8, cursor: "pointer",
+              fontFamily: "inherit", boxShadow: "0 4px 0 #713607", textAlign: "left" }}>
+            <div style={{ fontSize: 26, lineHeight: 1 }}>🏆</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>High Score Leaderboard</div>
+              <div style={{ fontSize: 12, color: "#fde68a", fontWeight: 600 }}>Top 10 single-game scores — can you crack it?</div>
+            </div>
+            <div style={{ fontSize: 18, color: "#fff" }}>→</div>
+          </button>
+
+          <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", letterSpacing: 0.8,
+            textTransform: "uppercase", margin: "0 0 4px 4px" }}>
+            Shop
+          </div>
+          <button onClick={() => { sfxClick(); setScreen("dugout"); }} className="press"
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%",
+              background: "linear-gradient(135deg,#7c4a12,#b45309)", border: "none",
+              borderRadius: 16, padding: "10px 14px", marginBottom: 18, cursor: "pointer",
+              fontFamily: "inherit", boxShadow: "0 4px 0 #5b3409", textAlign: "left" }}>
+            <div style={{ fontSize: 26, lineHeight: 1 }}>🏪</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>The Dugout</div>
+              <div style={{ fontSize: 12, color: "#fde68a", fontWeight: 600 }}>Spend your Seeds on jerseys, avatars & gear!</div>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#fff", background: "rgba(0,0,0,0.25)",
+              borderRadius: 10, padding: "4px 9px" }}>🌻 {seeds}</div>
+          </button>
+
+          <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", margin: "18px 0 0" }}>
+            Built by Coach Mike
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // ---- HOME ----
   if (screen === "home") {
     return (
       <div style={page}>
         <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
         <div style={{ ...card, padding: "22px 18px 24px", position: "relative" }}>
           <button onClick={() => { sfxClick(); setScreen("settings"); }} className="press"
             style={{ position: "absolute", top: 14, right: 14, zIndex: 10, background: "#fff",
               border: "2px solid #94a3b8", borderRadius: 12, padding: "6px 10px",
               fontSize: 18, cursor: "pointer", fontFamily: "inherit", lineHeight: 1,
               boxShadow: "0 3px 0 #94a3b8" }}>⚙️</button>
-          <button onClick={() => { playJingle(); }} className="press"
+          <button onClick={() => { sfxClick(); setScreen("landing"); }} className="press"
             style={{ position: "absolute", top: 14, left: 14, zIndex: 10, background: "#fff",
-              border: "2px solid #f59e0b", borderRadius: 12, padding: "6px 10px",
-              fontSize: 18, cursor: "pointer", fontFamily: "inherit", lineHeight: 1,
-              boxShadow: "0 3px 0 #f59e0b" }}>🎵</button>
+              border: "2px solid #94a3b8", borderRadius: 12, padding: "6px 11px",
+              fontSize: 15, fontWeight: 800, color: "#475569", cursor: "pointer", fontFamily: "inherit", lineHeight: 1,
+              boxShadow: "0 3px 0 #94a3b8" }}>← Menu</button>
           <div style={{ display: "flex", justifyContent: "center", animation: "float 3s ease-in-out infinite" }}>
             <DragonCoach size={90} />
           </div>
           <h1 style={{ textAlign: "center", margin: "8px 0 2px", fontSize: 30, fontWeight: 700, color: "#1e3a8a", letterSpacing: -0.5 }}>
-            Baseball IQ
+            Situational Baseball IQ
           </h1>
           <p style={{ textAlign: "center", margin: "0 0 16px", fontSize: 15, color: "#475569", fontWeight: 500 }}>
             Pick your position. Coach Bruce will quiz you on what to do!
-
           </p>
           {/* Rewards banner — tap to open the Trophy Case */}
-          {(() => {
-            const rank = rankForStars(totalStars);
-            const nr = nextRankFor(totalStars);
-            const badgeCount = Object.keys(badges).length;
-            return (
-              <button onClick={() => { sfxClick(); setScreen("trophies"); }} className="press"
-                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%",
-                  background: "linear-gradient(135deg,#1e3a8a,#2563eb)", border: "none",
-                  borderRadius: 16, padding: "10px 14px", marginBottom: 14, cursor: "pointer",
-                  fontFamily: "inherit", boxShadow: "0 4px 0 #15296b", textAlign: "left" }}>
-                <div style={{ fontSize: 30, lineHeight: 1 }}>{rank.emoji}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>{rank.name}</div>
-                  <div style={{ fontSize: 12, color: "#bfdbfe", fontWeight: 600 }}>
-                    ⭐ {totalStars} stars · 🏅 {badgeCount}/9 badges
-                    {nr ? ` · ${nr.min - totalStars} to ${nr.name}` : " · MAXED OUT!"}
-                  </div>
-                </div>
-                <div style={{ fontSize: 22 }}>🏆</div>
-              </button>
-            );
-          })()}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
             {POSITION_ORDER.map((p) => {
               const meta = POS_META[p];
@@ -2643,7 +3712,6 @@ export default function App() {
             })}
           </div>
 
-          {/* Install App button (Android/Chrome) — appears when the browser offers install */}
           {installPrompt && !isStandalone && (
             <button onClick={doInstall} className="press"
               style={{ ...bigBtn("#16a34a", "#15803d"), width: "100%", marginTop: 14, fontSize: 17 }}>
@@ -2656,14 +3724,165 @@ export default function App() {
               borderRadius: 14, padding: "11px 13px", textAlign: "center" }}>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: "#1e40af" }}>📲 Add to Home Screen</div>
               <div style={{ fontSize: 12.5, color: "#475569", marginTop: 3, lineHeight: 1.35 }}>
-                Tap the Share button below, then "Add to Home Screen" to install Baseball IQ like an app.
+                Tap the Share button below, then "Add to Home Screen" to install Baseball Genius like an app.
               </div>
             </div>
           )}
 
           <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", margin: "14px 0 0" }}>
-            For Mira Mesa Little Stars Blue · Built by Coach Mike 🐉
+            Built by Coach Mike
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- SIDE BIT: BASEBALL HISTORY (fun facts + trivia) ----
+  if (screen === "funzone") {
+    return (
+      <div style={page}>
+        <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
+        <div style={{ ...card, padding: "18px 16px 24px" }}>
+          <button onClick={() => { sfxClick(); setScreen("landing"); }} className="press"
+            style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", fontSize: 14, padding: "7px 12px", marginBottom: 12 }}>
+            ← Back
+          </button>
+          <h2 style={{ margin: "0 0 12px", fontSize: 22, fontWeight: 800, color: "#0e7490", textAlign: "center" }}>
+            📚 Baseball Trivia
+          </h2>
+          {/* ---- FUN FACTS ---- */}
+          {/* ---- TRIVIA QUIZ ---- */}
+          {funTab === "quiz" && !histDone && histQueue.length === 0 && (
+            <div>
+              <h2 style={{ fontSize: 17, fontWeight: 800, color: "#0e7490", margin: "4px 0 8px", textAlign: "center" }}>
+                Pick your trivia team!
+              </h2>
+              <button onClick={startMixedQuiz} className="press"
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%",
+                  background: "linear-gradient(135deg,#b45309,#f59e0b)", border: "none",
+                  borderRadius: 16, padding: "12px 14px", marginBottom: 12, cursor: "pointer",
+                  fontFamily: "inherit", boxShadow: "0 4px 0 #8a5a08", textAlign: "left" }}>
+                <span style={{ fontSize: 28 }}>🌟</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#fff" }}>Mixed Challenge — all 30 teams!</div>
+                  <div style={{ fontSize: 12, color: "#fde68a", fontWeight: 700 }}>DOUBLE stars ⭐⭐ + bonus Seeds 🌻 per correct answer!</div>
+                </div>
+              </button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }}>
+                {MLB_TEAMS.map((t) => (
+                  <button key={t.id} onClick={() => startTeamQuiz(t.id)} className="press"
+                    style={{ background: "#fff", border: `2.5px solid ${t.color}`, borderRadius: 13,
+                      padding: "8px 2px 7px", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", margin: "0 auto 4px",
+                      background: t.color, color: "#fff", display: "flex", alignItems: "center",
+                      justifyContent: "center", fontSize: 11, fontWeight: 800 }}>
+                      {t.id}
+                    </div>
+                    <div style={{ fontSize: 10.5, fontWeight: 800, color: t.color, lineHeight: 1.1 }}>{t.name}</div>
+                    <div style={{ fontSize: 8.5, fontWeight: 600, color: "#94a3b8", lineHeight: 1.1 }}>{t.city}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {funTab === "quiz" && !histDone && histQueue.length > 0 && (() => {
+            const item = histQueue[histIdx];
+            const tinfo = MLB_TEAMS.find((t) => t.id === triviaSel);
+            return (
+              <div>
+                <p style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#94a3b8", margin: "0 0 8px" }}>
+                  {triviaSel === "mixed" ? "🌟 Mixed Challenge (2x!) · " : tinfo ? `${tinfo.name} · ` : ""}Question {histIdx + 1} of {histQueue.length} · ⭐ {histScore * triviaMult}
+                </p>
+                <div style={{ background: "#f8fafc", border: "2px solid #e2e8f0", borderRadius: 14,
+                  padding: "16px 14px", marginBottom: 14, textAlign: "center",
+                  fontSize: 17, fontWeight: 800, color: "#0f2747", lineHeight: 1.35 }}>
+                  {item.q}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {item.options.map((o, i) => {
+                    const revealed = histResult !== null;
+                    const isChosen = histChosen === i;
+                    let bg = "#fff", border = "#cbd5e1", color = "#0f2747";
+                    if (revealed) {
+                      if (o.correct) { bg = "#dcfce7"; border = "#22c55e"; color = "#166534"; }
+                      else if (isChosen) { bg = "#fee2e2"; border = "#ef4444"; color = "#991b1b"; }
+                    }
+                    return (
+                      <button key={i} onClick={() => answerHist(i)} disabled={revealed} className="press"
+                        style={{ width: "100%", textAlign: "left", padding: "12px 14px", borderRadius: 12,
+                          cursor: revealed ? "default" : "pointer", fontFamily: "inherit",
+                          fontSize: 15, fontWeight: 700, border: `2px solid ${border}`,
+                          background: bg, color }}>
+                        {revealed && o.correct ? "✓ " : ""}{o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {histResult !== null && (
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ background: histResult === "correct" ? "#f0fdf4" : "#fffbeb",
+                      border: `2px solid ${histResult === "correct" ? "#86efac" : "#fde68a"}`,
+                      borderRadius: 12, padding: "11px 13px",
+                      fontSize: 14.5, fontWeight: 600, color: "#0f2747", lineHeight: 1.4 }}>
+                      {histResult === "correct" ? "✅ Right! " : "🤔 Not quite. "}{item.why}
+                    </div>
+                    <button onClick={nextHist} className="press"
+                      style={{ ...bigBtn("#0e7490", "#155e75"), width: "100%", marginTop: 12 }}>
+                      {histIdx + 1 < histQueue.length ? "Next →" : "See My Score →"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ---- QUIZ DONE ---- */}
+          {funTab === "quiz" && histDone && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 54, margin: "8px 0" }}>
+                {histScore === histQueue.length ? "🏆" : histScore >= histQueue.length / 2 ? "🌟" : "⚾"}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#0e7490" }}>
+                {histScore} / {histQueue.length} correct!
+              </div>
+              <p style={{ fontSize: 14.5, color: "#475569", margin: "8px 0 18px", lineHeight: 1.4 }}>
+                {histScore === histQueue.length ? "Perfect score — a true Baseball Genius!"
+                  : histScore >= histQueue.length / 2 ? "Great job! You really know your baseball history."
+                  : "Nice try! Play again to learn even more."}
+                {" "}
+              </p>
+              <div style={{ background: "linear-gradient(135deg,#b45309,#f59e0b)", borderRadius: 14,
+                padding: "10px 12px", margin: "0 0 14px", boxShadow: "0 3px 0 #8a5a08", textAlign: "left" }}>
+                <div style={{ fontSize: 11.5, fontWeight: 800, color: "#fef3c7", letterSpacing: 0.8, textTransform: "uppercase" }}>
+                  This round you earned
+                </div>
+                <div style={{ fontSize: 19, fontWeight: 800, color: "#fff", marginTop: 2 }}>
+                  ⭐ +{histScore * triviaMult} stars · 🌻 +{histScore * (triviaMult === 2 ? 3 : 2)} Seeds{triviaMult === 2 ? " (2x Mixed!)" : ""}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#fde68a", marginTop: 3 }}>
+                  {nextRankFor(totalStars)
+                    ? `Only ${nextRankFor(totalStars).min - totalStars} ⭐ to ${nextRankFor(totalStars).emoji} ${nextRankFor(totalStars).name} — keep going!`
+                    : "Top rank! Keep stacking Seeds for The Dugout! 🏪"}
+                </div>
+              </div>
+              <p style={{ display: "none" }}>
+              </p>
+              <button onClick={() => (triviaSel === "mixed" ? startMixedQuiz() : triviaSel ? startTeamQuiz(triviaSel) : startMixedQuiz())} className="press"
+                style={{ ...bigBtn("#0e7490", "#155e75"), width: "100%", marginBottom: 10 }}>
+                🔄 Play Again
+              </button>
+              <button onClick={backToTeamPicker} className="press"
+                style={{ ...bigBtn("#f59e0b", "#b45309"), width: "100%", marginBottom: 10 }}>
+                🏟️ Pick a Different Team
+              </button>
+              <button onClick={backToTeamPicker} className="press"
+                style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", width: "100%" }}>
+                🏟️ Back to Team Picker
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -2687,6 +3906,7 @@ export default function App() {
       return (
         <div style={page}>
           <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
           <div style={{ ...card, padding: "18px 16px 24px" }}>
             <button onClick={() => { sfxClick(); setEditorDraft(null); }} className="press"
               style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", fontSize: 14, padding: "7px 12px", marginBottom: 12 }}>
@@ -2783,6 +4003,7 @@ export default function App() {
     return (
       <div style={page}>
         <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
         <div style={{ ...card, padding: "18px 16px 24px" }}>
           <button onClick={() => { sfxClick(); setScreen("settings"); }} className="press"
             style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", fontSize: 14, padding: "7px 12px", marginBottom: 12 }}>
@@ -2847,8 +4068,9 @@ export default function App() {
     return (
       <div style={page}>
         <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
         <div style={{ ...card, padding: "20px 18px 24px" }}>
-          <button onClick={() => { sfxClick(); stopSpeak(); setScreen("home"); }} className="press"
+          <button onClick={() => { sfxClick(); stopSpeak(); setScreen("landing"); }} className="press"
             style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", fontSize: 14, padding: "7px 12px", marginBottom: 14 }}>
             ← Back
           </button>
@@ -2931,6 +4153,7 @@ export default function App() {
     return (
       <div style={page}>
         <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
         <div style={{ ...card, padding: "22px 20px 24px" }}>
           <button onClick={goHome} className="press"
             style={{ ...bigBtn("#e2e8f0", "#94a3b8"), color: "#475569", fontSize: 14, padding: "7px 12px", marginBottom: 14 }}>
@@ -2975,6 +4198,34 @@ export default function App() {
 
   // ---- DONE ----
   // ---- BATTING MINI-GAME ----
+  if (screen === "retro") {
+    return (
+      <>
+      {levelUp && <LevelUpFlash rank={levelUp} />}
+      <RetroGame
+        page={page}
+        card={card}
+        jerseyColor={jerseyColorFor(profile)}
+        goldBases={owned.includes("shop-gold-bases")}
+        onSeeds={(n) => setSeeds((sd) => sd + n)}
+        onHighScore={(s) => lbSubmit(s, "retro")}
+        batSkin={batColorFor(profile)}
+        hrFx={owned.includes("shop-hr-fireworks")}
+        winFx={owned.includes("shop-victory-confetti")}
+        walkup={owned.includes("shop-walkup-music")}
+        speak={speak}
+        stopSpeak={stopSpeak}
+        expand={expandPositions}
+        onExit={() => { stopSpeak(); setScreen("landing"); }}
+        onStars={(n) => setTotalStars((s) => s + n)}
+        sounds={{ click: sfxClick, crack: sfxCrack, whoosh: sfxWhoosh, out: sfxOut,
+                  wrong: sfxWrong, cheer: sfxCheer, crowd: crowdRoar, jingle: playJingle,
+                  ambStart: startCrowdAmbience, ambStop: stopCrowdAmbience }}
+      />
+      </>
+    );
+  }
+
   if (screen === "batting") {
     return (
       <BattingGame
@@ -2998,6 +4249,7 @@ export default function App() {
     return (
       <div style={page}>
         <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
         {/* Reward celebration popup */}
         {rewardPopup && (
           <div onClick={() => setRewardPopup(null)}
@@ -3053,6 +4305,22 @@ export default function App() {
               )}
             </>
           )}
+          {/* THIS ROUND earnings — stars AND Seeds, plus a reason to keep going */}
+          <div style={{ background: "linear-gradient(135deg,#b45309,#f59e0b)", borderRadius: 14,
+            padding: "10px 12px", margin: "4px 0 8px", boxShadow: "0 3px 0 #8a5a08" }}>
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: "#fef3c7", letterSpacing: 0.8, textTransform: "uppercase" }}>
+              This round you earned
+            </div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: "#fff", marginTop: 2 }}>
+              ⭐ +{lightning ? bonusStars : stars + bonusStars} stars · 🌻 +{(lightning ? bonusStars : stars + bonusStars) * 2} Seeds
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#fde68a", marginTop: 3 }}>
+              {nextRankFor(totalStars)
+                ? `Only ${nextRankFor(totalStars).min - totalStars} ⭐ to ${nextRankFor(totalStars).emoji} ${nextRankFor(totalStars).name} — keep going!`
+                : "Top rank! Keep stacking Seeds for The Dugout! 🏪"}
+            </div>
+          </div>
+
           {/* Lifetime rewards strip */}
           <div onClick={() => { sfxClick(); setScreen("trophies"); }}
             style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -3114,8 +4382,10 @@ export default function App() {
   return (
     <div style={page} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <style>{styleSheet}</style>
+        {levelUp && <LevelUpFlash rank={levelUp} />}
       <div style={card}>
-        <Header meta={meta} idx={inReview ? reviewIdx : idx} total={queue.length}
+        <Header onReplay={() => { sfxClick(); if (lastSpokenRef.current) speak(lastSpokenRef.current); }}
+          meta={meta} idx={inReview ? reviewIdx : idx} total={queue.length}
           goHome={goHome} soundOn={soundOn}
           toggleSound={() => { setSoundOn((s) => !s); stopSpeak(); }} />
 
@@ -3244,6 +4514,1323 @@ function Fireworks() {
           })}
         </div>
       ))}
+    </div>
+  );
+}
+
+// ============================================================
+// RETRO BALL GAME — half-inning of defense, 16-bit style.
+// Loop per batter: hit → FREEZE (call the play from the real
+// question bank, matched to the actual runners on base) →
+// field the ball (timing ring) → throw meter to your called
+// base → OUT! or runner's safe (real consequences).
+// 3 outs (or 5-run league cap) ends the inning.
+// ============================================================
+const RBASES = { home:{x:65,y:134}, first:{x:102,y:102}, second:{x:65,y:72}, third:{x:28,y:102} };
+const RPOS = { P:{x:64,y:99}, C:{x:63,y:141}, "1B":{x:95,y:95}, "2B":{x:80,y:80}, SS:{x:48,y:80},
+               "3B":{x:34,y:95}, LF:{x:24,y:46}, CF:{x:63,y:38}, RF:{x:102,y:46} };
+const RBASE_KEYS = ["first","second","third","home"];
+const RNAMES = { first:"FIRST", second:"SECOND", third:"THIRD", home:"HOME" };
+
+// ============================================================
+// GO/HOLD deck — bottom-half baserunning calls, straight from
+// the coaching curriculum: forced = GO hard (no choice); ball
+// IN FRONT of you and not forced = HOLD; ball BEHIND you = GO;
+// first-and-third = GO on contact (make them make the play).
+// A smart HOLD can still cost the batter at first — real ball.
+// ============================================================
+const GO_HOLD = [
+  { sit:"r1", runner:"first", hitTo:"SS", goTarget:"second", correct:"go", batterOutOnHold:false,
+    prompt:"You're the runner on FIRST. Ground ball to the shortstop. GO or HOLD?",
+    why:"GO! You're FORCED — when the batter hits a grounder, you HAVE to run. Go hard to second!",
+    hint:"Is there a runner behind you forcing you to move?" },
+  { sit:"r1", runner:"first", hitTo:"RF", goTarget:"second", correct:"go", batterOutOnHold:false, hitAdvance:true,
+    prompt:"You're the runner on FIRST. Base hit to right field! GO or HOLD?",
+    why:"GO! On a base hit you're forced to second — run hard and look for your coach!",
+    hint:"The batter is coming to first behind you." },
+  { sit:"r2", runner:"second", hitTo:"SS", goTarget:"third", correct:"hold", batterOutOnHold:true,
+    prompt:"You're the runner on SECOND — nobody behind you. Grounder to the shortstop, RIGHT in front of you. GO or HOLD?",
+    why:"HOLD! The ball is IN FRONT of you and you're not forced. Freeze — don't run into a tag! The batter's out at first, but you're safe.",
+    hint:"Never run INTO the ball when you don't have to." },
+  { sit:"r2", runner:"second", hitTo:"RF", goTarget:"third", correct:"go", batterOutOnHold:false, hitAdvance:true,
+    prompt:"You're the runner on SECOND. Base hit to RIGHT field — behind you! GO or HOLD?",
+    why:"GO! The ball is BEHIND you — take third easily while the throw comes in!",
+    hint:"Where's the ball — in front of you or behind you?" },
+  { sit:"r12", runner:"second", hitTo:"3B", goTarget:"third", correct:"go", batterOutOnHold:false,
+    prompt:"Runners on FIRST and SECOND — you're on second. Grounder to third. GO or HOLD?",
+    why:"GO! With a runner behind you, you're FORCED to third. No choice — run hard!",
+    hint:"The runner from first is coming to YOUR bag." },
+  { sit:"r3", runner:"third", hitTo:"P", goTarget:"home", correct:"hold", batterOutOnHold:true,
+    prompt:"You're the runner on THIRD. Comebacker to the PITCHER, right in front of you. GO or HOLD?",
+    why:"HOLD! The pitcher has it a few steps away — running now is an easy out. Batter's out at first, you're still ninety feet from scoring.",
+    hint:"How close is the ball to home plate?" },
+  { sit:"r13", runner:"third", hitTo:"SS", goTarget:"home", correct:"go", batterOutOnHold:false,
+    prompt:"First AND third — you're on third. Grounder to short. GO or HOLD?",
+    why:"GO! That's our rule on first-and-third: GO on contact and make them make the play at the plate!",
+    hint:"What's our first-and-third rule on contact?" },
+  { sit:"loaded", runner:"third", hitTo:"2B", goTarget:"home", correct:"go", batterOutOnHold:false,
+    prompt:"Bases LOADED — you're on third. Grounder to second. GO or HOLD?",
+    why:"GO! Bases loaded means you're FORCED home. Run hard — don't even look back!",
+    hint:"Every base behind you is full." },
+  { sit:"r23", runner:"third", hitTo:"CF", goTarget:"home", correct:"go", batterOutOnHold:false, hitAdvance:true,
+    prompt:"Second and third — you're on third. Base hit to center! GO or HOLD?",
+    why:"GO! A base hit with you on third — score that run!",
+    hint:"The ball just landed in the outfield." },
+];
+
+function PixGuy({ x, y, jersey, cap, skin="#ffcda0", bat=false, lefty=false, ball=false, batColor }) {
+  return (
+    <g transform={`translate(${x-2},${y-3})`}>
+      <rect x="1" y="0" width="3" height="1" fill={cap} />
+      <rect x="1" y="1" width="3" height="2" fill={skin} />
+      <rect x="0" y="3" width="5" height="3" fill={jersey} />
+      <rect x="1" y="6" width="1" height="1" fill="#232c3c" />
+      <rect x="3" y="6" width="1" height="1" fill="#232c3c" />
+      {bat && !lefty && <rect x="5" y="0" width="1" height="4" fill={batColor || "#78502a"} transform="rotate(35 5 4)" />}
+      {bat && lefty && <rect x="-1" y="0" width="1" height="4" fill={batColor || "#78502a"} transform="rotate(-35 0 4)" />}
+      {ball && <rect x="5" y="3" width="2" height="2" fill="#f4f0e6" />}
+    </g>
+  );
+}
+
+function RetroGame({ sounds, speak, stopSpeak, expand, onExit, onStars, onSeeds, onHighScore, page, card, jerseyColor, goldBases, batSkin, hrFx, winFx, walkup }) {
+  const NAVY="#1e3a8a", GOLD="#f0b429", LINE2="#f4f0e6", REDD="#d33c3c";
+  const TEAM = jerseyColor || NAVY; // your equipped jersey from the Locker
+  // ----- eligible play deck, grouped by base situation -----
+  const bank = useMemo(() => {
+    const map = {};
+    const outsReq = (sc) => {
+      const txt = `${sc.prompt||""} ${sc.why||""} ${sc.hint||""}`;
+      if (/\b(?:no|zero|0)\s+outs?\b/i.test(txt)) return 0;
+      if (/\b(?:one|1)\s+out\b/i.test(txt)) return 1;
+      if (/\b(?:two|2)\s+outs?\b/i.test(txt)) return 2;
+      return null; // no out-count baked into the question
+    };
+    Object.keys(SCENARIOS).forEach((pos) => {
+      (SCENARIOS[pos] || []).forEach((sc) => {
+        if (sc.mode !== "throw" || sc.mc) return;
+        const raw = Array.isArray(sc.correct) ? sc.correct : [sc.correct];
+        const allowed = raw.filter((c) => RBASE_KEYS.includes(c));
+        if (!allowed.length) return;
+        if (!RPOS[sc.position]) return;
+        (map[sc.baseSit] = map[sc.baseSit] || []).push({ sc, allowed, reqOuts: outsReq(sc) });
+      });
+    });
+    return map;
+  }, []);
+  const crowd = useMemo(() => {
+    const dots = []; const cols = ["#e6d2b4","#be8c6e","#78"+"5a46","#f0b429","#8ca0dc","#dc7878"];
+    for (let yy=14; yy<21; yy+=2) for (let xx=1; xx<130; xx+=3)
+      if (Math.random()<0.8) dots.push({x:xx,y:yy,c:cols[Math.floor(Math.random()*cols.length)]});
+    return dots;
+  }, []);
+
+  // ----- game state -----
+  const [outs, setOuts] = useState(0);
+  const [runs, setRuns] = useState(0);          // runs THEY scored (top half, vs your defense)
+  const [runsFor, setRunsFor] = useState(0);    // runs YOU scored (bottom half)
+  const [half, setHalf] = useState("top");      // "top" = you field, "bottom" = you bat
+  const [inning, setInning] = useState(1);      // 3-inning game
+  const [hrBurst, setHrBurst] = useState(0);    // 🎆 HR Fireworks Show (Dugout item)
+  const inningRef = useRef(1);
+  const [runners, setRunners] = useState({ first:false, second:false, third:false });
+  const [phase, setPhase] = useState("intro"); // intro|hit|question|field|throw|flight|result|newbatter|switch|odecide|over
+  const [play, setPlay] = useState(null);      // defense: { sc, allowed } | popup: { sc, kind:"popup" } | offense: GO_HOLD card | null
+  const [chosen, setChosen] = useState(null);  // base key the kid called
+  const [wrongHint, setWrongHint] = useState(null);
+  const [resultInfo, setResultInfo] = useState(null); // { big, line, good }
+  const [bobble, setBobble] = useState(false);
+  const [starsEarned, setStarsEarned] = useState(0);
+  const [ballDest, setBallDest] = useState(null); // where the hit lands (fielder runs to it)
+  const [batSide, setBatSide] = useState("R");    // your batter: righty or lefty
+  const [swingMsg, setSwingMsg] = useState(null); // strike feedback between pitches
+  const [coverPos, setCoverPos] = useState(null); // who covers the called base (decision matrix)
+
+  const mounted = useRef(true);
+  const raf = useRef(null);
+  const ballRef = useRef(null);
+  const ringRef = useRef(null);
+  const needleRef = useRef(null);
+  const fieldGRef = useRef(null);     // <g> of the fielder going to the ball
+  const coverGRef = useRef(null);     // <g> of the fielder covering the called base
+  const fieldersGroupRef = useRef(null);
+  const coverAnim = useRef(null);     // { t0, dur, dx, dy, done }
+  const fieldTap = useRef({ open:false, clean:false, done:false });
+  const throwLock = useRef({ open:false, pos:0.5 });
+  const stateRef = useRef({ half:"top", outs:0, runs:0, runsFor:0, runners:{first:false,second:false,third:false} });
+  const batters = useRef(0);
+  const playKindRef = useRef("throw"); // "throw" | "popup" | "run" (meter flavor)
+  const starsRef = useRef(0);          // accumulated across both halves
+  const seedsRef = useRef(0);          // 🌻 Seeds earned this game
+
+  // ----- popup deck: who-calls-it plays (runners always hold on a catch) -----
+  const popupBank = useMemo(() => {
+    const list = [];
+    Object.keys(SCENARIOS).forEach((pos) => {
+      (SCENARIOS[pos] || []).forEach((sc) => {
+        if (sc.mode !== "popup" || !sc.correct) return;
+        const cands = (sc.candidates && sc.candidates.length ? sc.candidates : [sc.correct])
+          .filter((c) => RPOS[c]);
+        if (!RPOS[sc.correct]) return;
+        list.push({ sc, kind:"popup", cands });
+      });
+    });
+    return list;
+  }, []);
+
+  // Where the hit lands: a few pixels short of the fielder (toward home),
+  // so the fielder visibly moves to the ball.
+  const ballDestFor = (pos) => {
+    const p = RPOS[pos], h = RBASES.home;
+    const dx = h.x - p.x, dy = h.y - p.y, len = Math.sqrt(dx*dx + dy*dy) || 1;
+    return { x: p.x + (dx/len)*7, y: p.y + (dy/len)*7 };
+  };
+  // COVERAGE DECISION MATRIX — who covers the called base when they
+  // don't have the ball (mirrors the Situational Baseball IQ curriculum):
+  //  • 1st: 1B — unless 1B fielded it, then the PITCHER covers.
+  //  • 2nd: ball on the LEFT side (3B/SS/LF/CF/P) → 2B covers;
+  //         ball on the RIGHT side (1B/2B/RF) → SS covers.
+  //  • 3rd: 3B — unless 3B fielded it, then SS covers.
+  //  • Home: CATCHER — unless C fielded it, then the PITCHER covers.
+  const coverFor = (base, ballPos) => {
+    let c;
+    if (base === "first") c = ballPos === "1B" ? "P" : "1B";
+    else if (base === "second") c = ["3B","SS","LF","CF","P"].includes(ballPos) ? "2B" : "SS";
+    else if (base === "third") c = ballPos === "3B" ? "SS" : "3B";
+    else c = ballPos === "C" ? "P" : "C";
+    return c === ballPos ? null : c;
+  };
+  // STEP-ON plays: the fielder is at their own bag and the question says to
+  // step on it — no throw happens, so no cover runner and no throw meter.
+  const OWN_BASE = { "1B":"first", "3B":"third", "C":"home" };
+  const stepOnRef = useRef(false);
+  const isStepOn = (sc, base) =>
+    OWN_BASE[sc.position] === base && /step\s+(right\s+)?on/i.test(`${sc.why||""} ${sc.prompt||""}`);
+  const advanceCover = (now) => {
+    const a = coverAnim.current;
+    if (!a || a.done || !coverGRef.current) return;
+    const t = Math.min(1, (now - a.t0) / a.dur);
+    coverGRef.current.setAttribute("transform", `translate(${(a.dx*t).toFixed(2)},${(a.dy*t).toFixed(2)})`);
+    if (t >= 1) a.done = true;
+  };
+  const resetMovers = () => {
+    coverAnim.current = null;
+    if (fieldersGroupRef.current) {
+      // Only reset the tagged MOVER wrappers — never the sprites' own
+      // positioning transforms (stripping those teleports the team to 0,0).
+      fieldersGroupRef.current.querySelectorAll("g[data-mover]").forEach((n) => n.removeAttribute("transform"));
+    }
+  };
+
+  useEffect(() => {
+    mounted.current = true;
+    sounds.ambStart && sounds.ambStart();
+    return () => { mounted.current = false; if (raf.current) cancelAnimationFrame(raf.current);
+      sounds.ambStop && sounds.ambStop(); stopSpeak && stopSpeak(); };
+    // eslint-disable-next-line
+  }, []);
+
+  const stateKey = (r) => {
+    const k = (r.first?"1":"") + (r.second?"2":"") + (r.third?"3":"");
+    return k==="" ? "empty" : k==="1" ? "r1" : k==="2" ? "r2" : k==="3" ? "r3" :
+           k==="12" ? "r12" : k==="13" ? "r13" : k==="23" ? "r23" : "loaded";
+  };
+  const setBall = (x,y,show=true) => {
+    if (!ballRef.current) return;
+    ballRef.current.setAttribute("x", x-1.3); ballRef.current.setAttribute("y", y-14-1.3);
+    ballRef.current.setAttribute("opacity", show ? 1 : 0);
+  };
+
+  // ----- per-batter kickoff -----
+  const nextBatter = () => {
+    if (!mounted.current) return;
+    batters.current += 1;
+    setChosen(null); setWrongHint(null); setResultInfo(null); setBobble(false);
+    setCoverPos(null); resetMovers(); stepOnRef.current = false; playKindRef.current = "throw";
+    setBall(0,0,false);
+    const key = stateKey(stateRef.current.runners);
+    const liveOuts = stateRef.current.outs;
+    // 1-in-4 plays: an infield pop-up (who calls it?) — any base state works
+    // because runners always hold on a catch at this level (no tag-ups).
+    if (popupBank.length && Math.random() < 0.25) {
+      const pk = popupBank[Math.floor(Math.random()*popupBank.length)];
+      playKindRef.current = "popup";
+      setPlay(pk);
+      const cs = pk.cands;
+      const cx = cs.reduce((s,c)=>s+RPOS[c].x,0)/cs.length;
+      const cy = cs.reduce((s,c)=>s+RPOS[c].y,0)/cs.length;
+      setBallDest({ x: cx, y: cy });
+      setPhase("newbatter");
+      setTimeout(() => { if (mounted.current) launchPopup(pk, {x:cx,y:cy}); }, 950);
+      return;
+    }
+    // Only serve questions whose baked-in out count (if any) matches the scoreboard.
+    const pool = (bank[key] || []).filter((p) => p.reqOuts === null || p.reqOuts === liveOuts);
+    const pick = pool.length ? pool[Math.floor(Math.random()*pool.length)] : null;
+    setPlay(pick);
+    setBallDest(pick ? ballDestFor(pick.sc.position) : null);
+    // ⚾ NEXT BATTER card — a clear beat between at-bats
+    setPhase("newbatter");
+    setTimeout(() => {
+      if (!mounted.current) return;
+      if (pick) launchPitch(pick);
+      else launchAutoHit(); // no question fits this base state — ball in play, no out
+    }, 950);
+  };
+
+  // Pitch comes in, batter puts it in play, freeze for the call.
+  const launchPitch = (pick) => {
+    const dest = ballDestFor(pick.sc.position);
+    setPhase("hit");
+    const mound = { x:64, y:97 }, home = RBASES.home;
+    const tP = performance.now(), pitchDur = 340;
+    const pitchStep = (now) => {
+      if (!mounted.current) return;
+      const t = Math.min(1, (now-tP)/pitchDur);
+      setBall(mound.x+(home.x-mound.x)*t, mound.y+(home.y-mound.y)*t);
+      if (t >= 1) {
+        sounds.crack && sounds.crack();
+        const tH = performance.now(), dur = 950;
+        const hitStep = (now2) => {
+          if (!mounted.current) return;
+          const t2 = Math.min(1, (now2-tH)/dur);
+          setBall(home.x+(dest.x-home.x)*t2, home.y+(dest.y-home.y)*t2);
+          if (t2 >= 0.55) {
+            setPhase("question");
+            sounds.click && sounds.click();
+            speak && speak(expand(`You're the ${pick.sc.position}! ${pick.sc.prompt}`));
+            return;
+          }
+          raf.current = requestAnimationFrame(hitStep);
+        };
+        raf.current = requestAnimationFrame(hitStep);
+        return;
+      }
+      raf.current = requestAnimationFrame(pitchStep);
+    };
+    setBall(mound.x, mound.y);
+    raf.current = requestAnimationFrame(pitchStep);
+  };
+
+  // Safety valve (rare): no scenario matches this base state. The ball is
+  // still put in play — a clean single nobody could reach. No out; runners
+  // advance one base; runner from third scores.
+  const launchAutoHit = () => {
+    setPhase("hit");
+    const mound = { x:64, y:97 }, home = RBASES.home, spot = { x: 95, y: 52 };
+    const tP = performance.now(), pitchDur = 340;
+    const step = (now) => {
+      if (!mounted.current) return;
+      const t = Math.min(1, (now-tP)/pitchDur);
+      setBall(mound.x+(home.x-mound.x)*t, mound.y+(home.y-mound.y)*t);
+      if (t >= 1) {
+        sounds.crack && sounds.crack();
+        const tH = performance.now(), dur = 700;
+        const fly = (now2) => {
+          if (!mounted.current) return;
+          const t2 = Math.min(1, (now2-tH)/dur);
+          setBall(home.x+(spot.x-home.x)*t2, home.y+(spot.y-home.y)*t2);
+          if (t2 >= 1) {
+            const r = { ...stateRef.current.runners };
+            let runsD = 0;
+            if (r.third) { runsD+=1; r.third=false; }
+            if (r.second){ r.third=true; r.second=false; }
+            if (r.first) { r.second=true; r.first=false; }
+            r.first = true;
+            stateRef.current.runners = r; setRunners({...r});
+            const newRuns = stateRef.current.runs + runsD;
+            stateRef.current.runs = newRuns; setRuns(newRuns);
+            setBall(0,0,false);
+            setResultInfo({ big:"BASE HIT!", line:"It drops in — nothing you could do! Runners take their base.", good:false });
+            setPhase("result");
+            setTimeout(() => endOrNext(), 1900);
+            return;
+          }
+          raf.current = requestAnimationFrame(fly);
+        };
+        raf.current = requestAnimationFrame(fly);
+        return;
+      }
+      raf.current = requestAnimationFrame(step);
+    };
+    setBall(mound.x, mound.y);
+    raf.current = requestAnimationFrame(step);
+  };
+
+  // ----- POP-UP play: pitch, ball pops up between fielders, who calls it? -----
+  const launchPopup = (pk, spot) => {
+    setPhase("hit");
+    const mound = { x:64, y:97 }, home = RBASES.home;
+    const tP = performance.now(), pitchDur = 340;
+    const step = (now) => {
+      if (!mounted.current) return;
+      const t = Math.min(1, (now-tP)/pitchDur);
+      setBall(mound.x+(home.x-mound.x)*t, mound.y+(home.y-mound.y)*t);
+      if (t >= 1) {
+        sounds.crack && sounds.crack();
+        const tH = performance.now(), dur = 1150; // hang time
+        const fly = (now2) => {
+          if (!mounted.current) return;
+          const t2 = Math.min(1, (now2-tH)/dur);
+          setBall(home.x+(spot.x-home.x)*t2, home.y+(spot.y-home.y)*t2);
+          if (t2 >= 0.5) {
+            setPhase("question");
+            sounds.click && sounds.click();
+            speak && speak(expand(`You're on defense! ${pk.sc.prompt}`));
+            return;
+          }
+          raf.current = requestAnimationFrame(fly);
+        };
+        raf.current = requestAnimationFrame(fly);
+        return;
+      }
+      raf.current = requestAnimationFrame(step);
+    };
+    setBall(mound.x, mound.y);
+    raf.current = requestAnimationFrame(step);
+  };
+
+  const tapFielder = (k) => {
+    if (phase !== "question" || playKindRef.current !== "popup" || !play) return;
+    if (k === play.sc.correct) {
+      sounds.out && sounds.out();
+      setChosen(k); setWrongHint(null);
+      stopSpeak && stopSpeak();
+      // ball drops in; the caller charges to it, then the CATCH meter
+      const spot = ballDest, fp = RPOS[k];
+      setPhase("field");
+      const home = RBASES.home;
+      const t0 = performance.now(), dur = 460;
+      const step = (now) => {
+        if (!mounted.current) return;
+        const t = Math.min(1, (now-t0)/dur);
+        const tt = 0.5 + 0.5*t;
+        setBall(home.x+(spot.x-home.x)*tt, home.y+(spot.y-home.y)*tt);
+        if (fieldGRef.current) {
+          fieldGRef.current.setAttribute("transform",
+            `translate(${((spot.x-fp.x)*t).toFixed(2)},${((spot.y-fp.y)*t).toFixed(2)})`);
+        }
+        if (t >= 1) { startThrow(k, false); return; } // meter = CATCH meter here
+        raf.current = requestAnimationFrame(step);
+      };
+      raf.current = requestAnimationFrame(step);
+    } else {
+      sounds.wrong && sounds.wrong();
+      setWrongHint(expand(play.sc.hint || "Think about the priority order!"));
+    }
+  };
+
+  const resolvePopup = (zone) => {
+    const caught = zone !== "red";
+    let big, line, good;
+    if (caught) {
+      const o = stateRef.current.outs + 1;
+      stateRef.current.outs = o; setOuts(o);
+      starsRef.current += 1;
+      seedsRef.current += 3;
+      big = zone==="green" ? "OUT! CAN OF CORN!" : "OUT! HE SQUEEZES IT!";
+      line = expand(play.sc.why || "Call it loud and catch it!") + " Runners hold.";
+      good = true;
+      sounds.crowd && sounds.crowd(zone==="green"?1.1:0.85);
+    } else {
+      // dropped: error — batter reaches, forced runners move up, no out
+      const r = { ...stateRef.current.runners };
+      let runsD = 0;
+      const wasFirst = r.first, wasSecond = r.second, wasThird = r.third;
+      if (wasFirst && wasSecond && wasThird) { runsD+=1; r.third=false; }
+      if (wasFirst && wasSecond) { r.third=true; r.second=false; }
+      if (wasFirst) { r.second=true; r.first=false; }
+      r.first = true;
+      stateRef.current.runners = r; setRunners({...r});
+      const newRuns = stateRef.current.runs + runsD;
+      stateRef.current.runs = newRuns; setRuns(newRuns);
+      big = "DROPPED IT!";
+      line = "It pops out of the glove — everybody's safe! Two hands next time.";
+      good = false;
+      sounds.wrong && sounds.wrong();
+    }
+    setResultInfo({ big, line, good });
+    speak && speak(big);
+    setPhase("result");
+    setBall(0,0,false);
+    setTimeout(() => endOrNext(), 2100);
+  };
+
+  // ----- freeze-frame answer -----
+  const tapBase = (b) => {
+    if (phase !== "question" || !play || !play.sc || !play.allowed) return;
+    if (play.allowed.includes(b)) {
+      sounds.out && sounds.out();
+      setChosen(b); setWrongHint(null);
+      stepOnRef.current = isStepOn(play.sc, b);
+      setCoverPos(stepOnRef.current ? null : coverFor(b, play.sc.position));
+      stopSpeak && stopSpeak();
+      resumeFlight(b);
+    } else {
+      sounds.wrong && sounds.wrong();
+      setWrongHint(expand(play.sc.hint || "Think it through — where's the play?"));
+    }
+  };
+
+  const resumeFlight = (b) => {
+    setPhase("field");
+    const home = RBASES.home, dest = ballDest || ballDestFor(play.sc.position);
+    const fp = RPOS[play.sc.position];
+    const t0 = performance.now(), dur = 420;
+    const step = (now) => {
+      if (!mounted.current) return;
+      const t = Math.min(1, (now-t0)/dur);
+      const tt = 0.55 + 0.45*t;
+      setBall(home.x+(dest.x-home.x)*tt, home.y+(dest.y-home.y)*tt);
+      // the fielder charges to the ball
+      if (fieldGRef.current) {
+        fieldGRef.current.setAttribute("transform",
+          `translate(${((dest.x-fp.x)*t).toFixed(2)},${((dest.y-fp.y)*t).toFixed(2)})`);
+      }
+      if (t >= 1) { stepOnRef.current ? startThrow(b, false) : startRing(b); return; }
+      raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+  };
+
+  // ----- fielding ring (timing tap) -----
+  const startRing = (b) => {
+    fieldTap.current = { open:true, clean:false, done:false };
+    // launch the covering fielder's run to the called base (decision matrix);
+    // on a step-on play the fielder takes the bag himself — no cover runner
+    const cv = stepOnRef.current ? null : coverFor(b, play.sc.position);
+    if (cv) {
+      const cp = RPOS[cv], bp = RBASES[b];
+      // land ON the bag: sprite feet on the base center (same stance as runners)
+      const tx = bp.x, ty = bp.y - 3;
+      coverAnim.current = { t0: performance.now(), dur: 900, dx: tx - cp.x, dy: ty - cp.y, done:false };
+    } else {
+      coverAnim.current = null;
+    }
+    const t0 = performance.now(), dur = 1050;
+    const step = (now) => {
+      if (!mounted.current) return;
+      advanceCover(now);
+      const t = Math.min(1, (now-t0)/dur);
+      const r = 16 - 12*t;
+      if (ringRef.current) { ringRef.current.setAttribute("r", r); ringRef.current.setAttribute("opacity", 1); }
+      if (fieldTap.current.done) { startThrow(b, !fieldTap.current.clean); return; }
+      if (t >= 1) { fieldTap.current.open=false;
+        if (ringRef.current) ringRef.current.setAttribute("opacity", 0);
+        startThrow(b, true); return; }
+      raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+  };
+  const tapField = () => {
+    if (phase!=="field" || !fieldTap.current.open || fieldTap.current.done) return;
+    const r = ringRef.current ? parseFloat(ringRef.current.getAttribute("r")) : 16;
+    fieldTap.current.done = true; fieldTap.current.clean = r <= 9;
+    if (ringRef.current) ringRef.current.setAttribute("opacity", 0);
+    (r <= 9 ? sounds.out : sounds.wrong) && (r <= 9 ? sounds.out() : sounds.wrong());
+    setBobble(r > 9);
+  };
+
+  // STEP-ON finish: the fielder runs the last steps and plants on the bag.
+  const runToBag = (b, zone) => {
+    setPhase("flight");
+    const fp = RPOS[play.sc.position], dest = ballDest || ballDestFor(play.sc.position);
+    const bp = RBASES[b];
+    const fromDx = dest.x - fp.x, fromDy = dest.y - fp.y;        // where the fielder is now
+    const toDx = bp.x - fp.x, toDy = (bp.y - 3) - fp.y;          // feet on the bag
+    setBall(0,0,false); // ball's in the glove
+    const t0 = performance.now(), dur = 320;
+    const step = (now) => {
+      if (!mounted.current) return;
+      const t = Math.min(1, (now-t0)/dur);
+      if (fieldGRef.current) {
+        fieldGRef.current.setAttribute("transform",
+          `translate(${(fromDx+(toDx-fromDx)*t).toFixed(2)},${(fromDy+(toDy-fromDy)*t).toFixed(2)})`);
+      }
+      if (t >= 1) { settle(zone, true); return; }
+      raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+  };
+
+  // ----- throw meter (doubles as the FIELDING meter on step-on plays) -----
+  const startThrow = (b, wasBobble) => {
+    setBobble(wasBobble);
+    setPhase("throw");
+    throwLock.current = { open:true, pos:0.5 };
+    // Linear sweep: constant needle speed edge-to-edge (no hovering at the
+    // ends like a sine wave). sweepMs = time for one full edge-to-edge pass.
+    const sweepMs = wasBobble ? 635 : 1025;
+    const t0 = performance.now();
+    const step = (now) => {
+      if (!mounted.current || !throwLock.current.open) return;
+      advanceCover(now);
+      // triangle wave starting at center (0.5), moving right first
+      const ph = (0.5 + (now - t0) / sweepMs) % 2;
+      const p = ph < 1 ? ph : 2 - ph;
+      throwLock.current.pos = p;
+      if (needleRef.current) needleRef.current.style.left = `calc(${(6+p*88).toFixed(2)}% - 2px)`;
+      raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+  };
+  const tapThrow = () => {
+    if (phase!=="throw" || !throwLock.current.open) return;
+    throwLock.current.open = false;
+    // Score from the needle's visual position so zones match what's painted:
+    // red 6-25%, yellow 25-40%, green 40-62%, yellow 62-77%, red 77-94%.
+    const X = 6 + throwLock.current.pos * 88;
+    const zone = (X>=40 && X<=62) ? "green" : ((X>=25&&X<40)||(X>62&&X<=77)) ? "yellow" : "red";
+    // CATCH meter (pop-up): green/yellow = squeezed it; red = dropped.
+    if (playKindRef.current === "popup") {
+      (zone!=="red" ? sounds.out : sounds.wrong) && (zone!=="red" ? sounds.out() : sounds.wrong());
+      resolvePopup(zone);
+      return;
+    }
+    // RUN meter (offense GO call): green/yellow = beat the throw; red = out.
+    if (playKindRef.current === "run") {
+      (zone!=="red" ? sounds.out : sounds.wrong) && (zone!=="red" ? sounds.out() : sounds.wrong());
+      resolveRun(zone);
+      return;
+    }
+    // FIELDING meter (step-on play): green = gloved it clean -> force at the
+    // bag; anything else = bobbled it and the runner beats you.
+    if (stepOnRef.current) {
+      const clean = zone !== "red"; // green = clean, yellow = close but he got it
+      (clean ? sounds.out : sounds.wrong) && (clean ? sounds.out() : sounds.wrong());
+      runToBag(chosen, zone);
+      return;
+    }
+    sounds.whoosh && sounds.whoosh();
+    // ball flies from the landing spot -> chosen base (the cover fielder is there)
+    const from = ballDest || RPOS[play.sc.position], to = RBASES[chosen];
+    const t0 = performance.now(), dur = 480;
+    setPhase("flight");
+    const step = (now) => {
+      if (!mounted.current) return;
+      advanceCover(now);
+      const t = Math.min(1,(now-t0)/dur);
+      setBall(from.x+(to.x-from.x)*t, from.y+(to.y-from.y)*t);
+      if (t>=1) { settle(zone); return; }
+      raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+  };
+
+  // ----- outcome resolution (real consequences) -----
+  const settle = (zone, stepOn = false) => {
+    const r = { ...stateRef.current.runners };
+    const isOF = ["LF","CF","RF"].includes(play.sc.position);
+    let outsD=0, runsD=0, big, line, good;
+    const success = zone !== "red";
+    if (success) {
+      outsD = 1;
+      starsRef.current += 1;
+      seedsRef.current += 3;
+      if (!isOF) {
+        if (chosen==="first") { if (r.third) { runsD+=1; r.third=false; } if (r.second){r.third=true;r.second=false;} if (r.first){r.second=true;r.first=false;} }
+        else if (chosen==="second") {
+          if (r.first) { r.first=false; if (r.second){ r.third=true; r.second=false; } }
+          else if (r.second) { r.second=false; }
+          r.first=true;
+        }
+        else if (chosen==="third") {
+          if (r.second) { r.second=false; }
+          else if (r.third) { r.third=false; }
+          if (r.first){ r.second=true; r.first=false; }
+          r.first=true;
+        }
+        else { /* home */ if (r.third){ r.third=false; } if (r.second){ r.third=true; r.second=false; } if (r.first){ r.second=true; r.first=false; } r.first=true; }
+      } else {
+        // base hit to the outfield: batter reaches unless gunned at first
+        if (chosen==="home") { if (r.third) r.third=false; }
+        else if (r.third) { runsD+=1; r.third=false; }
+        if (chosen==="second") { if (r.first) r.first=false; if (r.second){r.third=true;r.second=false;} r.first=true; }
+        else if (chosen==="third") { if (r.second) r.second=false; if (r.first){r.second=true;r.first=false;} r.first=true; }
+        else if (chosen==="first") { if (r.second){r.third=true;r.second=false;} if (r.first){r.second=true;r.first=false;} }
+        else { if (r.second){r.third=true;r.second=false;} if (r.first){r.second=true;r.first=false;} r.first=true; }
+      }
+      big = stepOn ? (zone==="green" ? "OUT! FORCE AT THE BAG!" : "OUT! JUST IN TIME!")
+                  : (zone==="green" ? "OUT! PERFECT THROW!" : "OUT!");
+      line = expand(play.sc.why || "Great call, great play!");
+      good = true;
+      sounds.crowd && sounds.crowd(zone==="green"?1.2:0.9);
+    } else {
+      // wild throw — no out, but NO extra bases either: forced runners reach
+      // the base they were already running to; unforced runners hold.
+      if (isOF) {
+        // the base hit itself moves everyone up one; the wild throw just means no out
+        if (r.third) { runsD+=1; r.third=false; }
+        if (r.second){ r.third=true; r.second=false; }
+        if (r.first) { r.second=true; r.first=false; }
+        r.first = true;
+      } else {
+        const wasFirst = r.first, wasSecond = r.second, wasThird = r.third;
+        const forcedHome = wasFirst && wasSecond && wasThird;
+        const forcedThird = wasFirst && wasSecond;
+        const forcedSecond = wasFirst;
+        if (forcedHome) { runsD+=1; r.third=false; }
+        if (forcedThird) { r.third=true; r.second=false; }
+        if (forcedSecond) { r.second=true; r.first=false; }
+        r.first = true;
+      }
+      big = stepOn ? "SAFE AT THE BAG!" : "WILD THROW — SAFE!";
+      line = stepOn
+        ? "Bobbled it — the runner beat you to the bag! Glove it clean next time."
+        : "Right call… but the throw got away! Everybody's safe.";
+      good = false;
+      sounds.wrong && sounds.wrong();
+    }
+    stateRef.current.runners = r; setRunners({...r});
+    const newOuts = stateRef.current.outs + outsD;
+    const newRuns = stateRef.current.runs + runsD;
+    stateRef.current.outs = newOuts; stateRef.current.runs = newRuns;
+    setOuts(newOuts); setRuns(newRuns);
+    if (runsD>0 && success) line += runsD===1 ? " (A run scored on the play.)" : "";
+    setResultInfo({ big, line, good });
+    setPhase("result");
+    setBall(0,0,false);
+    setTimeout(() => endOrNext(), 2100);
+  };
+
+  const endOrNext = () => {
+    if (!mounted.current) return;
+    const s = stateRef.current;
+    if (s.half === "top") {
+      if (s.outs >= 3 || s.runs >= 5) {
+        if (s.runs === 0) { starsRef.current += 2; seedsRef.current += 5; } // shutout half
+        sounds.cheer && sounds.cheer();
+        setPhase("switch");
+        setTimeout(() => { if (mounted.current) startBottom(); }, 2300);
+      } else {
+        nextBatter();
+      }
+    } else {
+      if (s.outs >= 3 || s.runsFor >= 5) {
+        if (inningRef.current < 3) {
+          // Next inning! Back on defense.
+          inningRef.current += 1;
+          setInning(inningRef.current);
+          sounds.cheer && sounds.cheer();
+          setPhase("nextInning");
+          setTimeout(() => {
+            if (!mounted.current) return;
+            stateRef.current.half = "top"; stateRef.current.outs = 0;
+            stateRef.current.runners = { first:false, second:false, third:false };
+            setHalf("top"); setOuts(0); setRunners({ first:false, second:false, third:false });
+            nextBatter();
+          }, 2300);
+        } else {
+          if (s.runsFor > s.runs) { starsRef.current += 3; seedsRef.current += 10; } // W bonus
+          setStarsEarned(starsRef.current);
+          if (starsRef.current > 0 && onStars) onStars(starsRef.current);
+          if (onHighScore) onHighScore(starsRef.current);
+          if (seedsRef.current > 0 && onSeeds) onSeeds(seedsRef.current);
+          sounds.cheer && sounds.cheer();
+        setPhase("over");
+        }
+      } else {
+        nextBatterOff();
+      }
+    }
+  };
+
+  const startBottom = () => {
+    stateRef.current.half = "bottom";
+    stateRef.current.outs = 0;
+    stateRef.current.runners = { first:false, second:false, third:false };
+    setHalf("bottom"); setOuts(0); setRunners({ first:false, second:false, third:false });
+    batters.current = 0;
+    nextBatterOff();
+  };
+
+  // ================= BOTTOM HALF — YOUR TEAM BATS =================
+  // Real swinging: the pitch comes in, YOU time the swing.
+  //   early  -> pulled  (righty: LEFT field;  lefty: RIGHT field)
+  //   late   -> oppo    (righty: RIGHT field; lefty: LEFT field)
+  //   perfect-> HOME RUN over the center field fence!
+  //   whiff / no swing -> strike, next pitch (no strikeouts — keep swinging)
+  const SIDE_OF = { SS:"left", "3B":"left", LF:"left", P:"mid", CF:"mid", RF:"right", "2B":"right", "1B":"right" };
+  const swingLock = useRef({ open:false, t:0 });
+
+  const nextBatterOff = () => {
+    if (!mounted.current) return;
+    batters.current += 1;
+    setChosen(null); setWrongHint(null); setResultInfo(null); setBobble(false);
+    setCoverPos(null); resetMovers(); stepOnRef.current = false; playKindRef.current = "throw";
+    setSwingMsg(null);
+    setBatSide(Math.random() < 0.6 ? "R" : "L");
+    if (walkup && sounds.jingle) { try { sounds.jingle(); } catch (e) {} }
+    setPlay(null); setBallDest(null);
+    setBall(0,0,false);
+    setPhase("newbatter");
+    setTimeout(() => { if (mounted.current) startPitchOff(); }, 950);
+  };
+
+  const startPitchOff = () => {
+    if (!mounted.current) return;
+    setPhase("swing");
+    swingLock.current = { open:true, t:0 };
+    const mound = { x:64, y:97 }, home = RBASES.home;
+    const t0 = performance.now(), dur = 850; // hittable pitch speed
+    const step = (now) => {
+      if (!mounted.current || !swingLock.current.open) return;
+      const t = (now - t0) / dur;
+      swingLock.current.t = t;
+      setBall(mound.x+(home.x-mound.x)*Math.min(1,t), mound.y+(home.y-mound.y)*Math.min(1,t));
+      if (t >= 1.05) { // took the pitch
+        swingLock.current.open = false;
+        calledStrike("STRIKE — right down the middle! Be ready!");
+        return;
+      }
+      raf.current = requestAnimationFrame(step);
+    };
+    setBall(mound.x, mound.y);
+    raf.current = requestAnimationFrame(step);
+  };
+
+  const calledStrike = (msg) => {
+    sounds.whoosh && sounds.whoosh();
+    setSwingMsg(msg);
+    setBall(0,0,false);
+    setTimeout(() => { if (mounted.current) startPitchOff(); }, 800);
+  };
+
+  const swingNow = () => {
+    if (phase !== "swing" || !swingLock.current.open) return;
+    const t = swingLock.current.t;
+    swingLock.current.open = false;
+    if (t < 0.30) { calledStrike("WAY out in front — wait for it!"); return; }
+    if (t > 1.0)  { calledStrike("Swung late and missed — quicker hands!"); return; }
+    if (t >= 0.78 && t <= 0.90) { homeRun(); return; }
+    const early = t < 0.78;
+    const side = batSide === "R" ? (early ? "left" : "right") : (early ? "right" : "left");
+    contactTo(side, early);
+  };
+
+  const homeRun = () => {
+    sounds.crack && sounds.crack();
+    playKindRef.current = "throw";
+    setPhase("flight");
+    const home = RBASES.home, wall = { x:65, y:16 };
+    const t0 = performance.now(), dur = 800;
+    const step = (now) => {
+      if (!mounted.current) return;
+      const t = Math.min(1, (now-t0)/dur);
+      setBall(home.x+(wall.x-home.x)*t, home.y+(wall.y-home.y)*t);
+      if (t >= 1) {
+        const r = stateRef.current.runners;
+        const score = 1 + (r.first?1:0) + (r.second?1:0) + (r.third?1:0);
+        stateRef.current.runners = { first:false, second:false, third:false };
+        setRunners({ first:false, second:false, third:false });
+        const nr = stateRef.current.runsFor + score;
+        stateRef.current.runsFor = nr; setRunsFor(nr);
+        starsRef.current += score;
+        seedsRef.current += score * 3;
+        setBall(0,0,false);
+        sounds.crowd && sounds.crowd(1.35);
+        setResultInfo({ big:"HOME RUN!", line:`PERFECT swing — over the center field fence! ${score} ${score===1?"run scores":"runs score"}!`, good:true });
+        speak && speak("HOME RUN!");
+        if (hrFx) { setHrBurst((k) => k + 1); setTimeout(() => setHrBurst(0), 1600); }
+        setPhase("result");
+        setTimeout(() => endOrNext(), 2400);
+        return;
+      }
+      raf.current = requestAnimationFrame(step);
+    };
+    raf.current = requestAnimationFrame(step);
+  };
+
+  const contactTo = (side, early) => {
+    sounds.crack && sounds.crack();
+    const key = stateKey(stateRef.current.runners);
+    const cards = GO_HOLD.filter((c) => c.sit === key && (SIDE_OF[c.hitTo] === side || SIDE_OF[c.hitTo] === "mid"));
+    const card = cards.length ? { ...cards[Math.floor(Math.random()*cards.length)], kind:"gohold" } : null;
+    if (card) {
+      setPlay(card);
+      const dest = ballDestFor(card.hitTo);
+      setBallDest(dest);
+      const home = RBASES.home;
+      const tH = performance.now(), dur = 950;
+      const hitStep = (now2) => {
+        if (!mounted.current) return;
+        const t2 = Math.min(1, (now2-tH)/dur);
+        setBall(home.x+(dest.x-home.x)*t2, home.y+(dest.y-home.y)*t2);
+        if (t2 >= 0.55) {
+          setPhase("odecide");
+          sounds.click && sounds.click();
+          speak && speak(expand(card.prompt));
+          return;
+        }
+        raf.current = requestAnimationFrame(hitStep);
+      };
+      raf.current = requestAnimationFrame(hitStep);
+    } else {
+      // no decision card for this state/side: clean single to that side
+      autoHitFly(side === "left" ? { x:32, y:52 } : { x:98, y:52 });
+    }
+  };
+
+  const autoHitFly = (spot) => {
+    const home = RBASES.home;
+    const tH = performance.now(), dur = 700;
+    const fly = (now2) => {
+      if (!mounted.current) return;
+      const t2 = Math.min(1, (now2-tH)/dur);
+      setBall(home.x+(spot.x-home.x)*t2, home.y+(spot.y-home.y)*t2);
+      if (t2 >= 1) {
+        const r = { ...stateRef.current.runners };
+        let runsForD = 0;
+        if (r.third) { runsForD+=1; r.third=false; }
+        if (r.second){ r.third=true; r.second=false; }
+        if (r.first) { r.second=true; r.first=false; }
+        r.first = true;
+        stateRef.current.runners = r; setRunners({...r});
+        if (runsForD) {
+          const nr = stateRef.current.runsFor + runsForD;
+          stateRef.current.runsFor = nr; setRunsFor(nr);
+          starsRef.current += runsForD; seedsRef.current += runsForD * 3;
+        }
+        setBall(0,0,false);
+        sounds.crowd && sounds.crowd(0.7);
+        setResultInfo({ big:"BASE HIT!", line:"It drops in — runners move up!", good:true });
+        setPhase("result");
+        setTimeout(() => endOrNext(), 1900);
+        return;
+      }
+      raf.current = requestAnimationFrame(fly);
+    };
+    raf.current = requestAnimationFrame(fly);
+  };
+
+  const decide = (choice) => {
+    if (phase !== "odecide" || !play) return;
+    if (choice === play.correct) {
+      sounds.out && sounds.out();
+      setWrongHint(null);
+      stopSpeak && stopSpeak();
+      if (choice === "hold") {
+        resolveHold();
+      } else {
+        playKindRef.current = "run";
+        setChosen(play.goTarget);
+        startThrow(play.goTarget, false); // RUN meter
+      }
+    } else {
+      sounds.wrong && sounds.wrong();
+      setWrongHint(expand(play.hint || "Think — forced or not? Ball in front or behind?"));
+    }
+  };
+
+  const resolveHold = () => {
+    const card = play;
+    let outsD = card.batterOutOnHold ? 1 : 0;
+    const r = { ...stateRef.current.runners };
+    if (!card.batterOutOnHold) {
+      // batter reaches; only forced runners move
+      const f2 = r.first, f3 = r.first && r.second, fH = r.first && r.second && r.third;
+      if (fH) { r.third = false; } // (can't happen with a HOLD card in this deck)
+      if (f3) { r.third = true; r.second = false; }
+      if (f2) { r.second = true; r.first = false; }
+      r.first = true;
+    }
+    stateRef.current.runners = r; setRunners({ ...r });
+    if (outsD) { const o = stateRef.current.outs + outsD; stateRef.current.outs = o; setOuts(o); }
+    setResultInfo({ big:"SMART HOLD!", line: expand(card.why), good:true });
+    speak && speak("SMART HOLD!");
+    setPhase("result");
+    setBall(0,0,false);
+    setTimeout(() => endOrNext(), 2300);
+  };
+
+  const resolveRun = (zone) => {
+    const card = play;
+    const safe = zone !== "red";
+    const r = { ...stateRef.current.runners };
+    let runsForD = 0, outsD = 0;
+    r[card.runner] = false; // the deciding runner leaves their bag
+    if (card.hitAdvance) {
+      // it was a base hit: everyone else takes a base too
+      if (r.third) { runsForD += 1; r.third = false; }
+      if (r.second){ r.third = true; r.second = false; }
+      if (r.first) { r.second = true; r.first = false; }
+      r.first = true;
+    } else {
+      // grounder: batter to first pushes only forced runners
+      const f2 = r.first, f3 = r.first && r.second, fH = r.first && r.second && r.third;
+      if (fH) { runsForD += 1; r.third = false; }
+      if (f3) { r.third = true; r.second = false; }
+      if (f2) { r.second = true; r.first = false; }
+      r.first = true;
+    }
+    let big, line, good;
+    if (safe) {
+      if (card.goTarget === "home") { runsForD += 1; }
+      else { r[card.goTarget] = true; }
+      big = card.goTarget === "home"
+        ? (zone === "green" ? "SAFE — RUN SCORES!" : "SAFE AT HOME — JUST BEAT IT!")
+        : `SAFE AT ${RNAMES[card.goTarget]}!`;
+      line = expand(card.why);
+      good = true;
+      sounds.crowd && sounds.crowd(card.goTarget==="home" ? 1.25 : 0.9);
+    } else {
+      outsD = 1;
+      big = `OUT AT ${RNAMES[card.goTarget]}!`;
+      line = "Right call — but he gunned you down! Hit the green to beat the throw.";
+      good = false;
+      sounds.wrong && sounds.wrong();
+    }
+    stateRef.current.runners = r; setRunners({ ...r });
+    if (runsForD) {
+      const nr = stateRef.current.runsFor + runsForD;
+      stateRef.current.runsFor = nr; setRunsFor(nr);
+      starsRef.current += runsForD; seedsRef.current += runsForD * 3;
+    }
+    if (outsD) { const o = stateRef.current.outs + outsD; stateRef.current.outs = o; setOuts(o); }
+    setResultInfo({ big, line, good });
+    speak && speak(big);
+    setPhase("result");
+    setBall(0,0,false);
+    setTimeout(() => endOrNext(), 2300);
+  };
+
+  const startGame = () => { sounds.click && sounds.click(); nextBatter(); };
+  const quit = () => { stopSpeak && stopSpeak(); onExit(); };
+
+  // ----- retro UI bits -----
+  const retroFont = { fontFamily:"inherit", letterSpacing:0.5, textTransform:"uppercase" };
+  const pixShadow = "2px 2px 0 rgba(10,14,30,0.85)";
+  const sc = play && play.sc ? play.sc : null;
+  const grassBands = [];
+  for (let y=0; y<162; y+=9) grassBands.push(y);
+
+  return (
+    <div style={{ ...page, background:"#0b1024" }}>
+      <div style={{ ...card, padding: 10, background:"#101736", border:"3px solid #1f2c5c", position:"relative", overflow:"hidden" }}>
+        {/* 🎆 HR Fireworks Show */}
+        {hrBurst > 0 && [[24,30,"#fde047"],[72,24,"#fb923c"],[48,12,"#f87171"]].map(([bx,by,col], b) =>
+          Array.from({ length: 10 }).map((_, i) => {
+            const a = (i / 10) * Math.PI * 2;
+            return <div key={`hr${hrBurst}-${b}-${i}`} style={{ position:"absolute", left:`${bx}%`, top:`${by}%`,
+              width:7, height:7, borderRadius:"50%", background:col, zIndex:6, pointerEvents:"none",
+              "--dx":`${Math.cos(a)*62}px`, "--dy":`${Math.sin(a)*62}px`,
+              animation:`fwparticle 1.15s ${0.12*b}s ease-out forwards` }} />;
+          })
+        )}
+        {/* scanlines */}
+        <div style={{ position:"absolute", inset:0, pointerEvents:"none", zIndex:9,
+          background:"repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,0.10) 3px 4px)" }} />
+
+        {/* HUD */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+          background:"#0d1326", border:"2px solid #283a78", borderRadius:8, padding:"7px 10px", marginBottom:8 }}>
+          <span style={{ ...retroFont, color:GOLD, fontWeight:800, fontSize:14 }}>INN {inning}/3 {half==="top"?"▲":"▼"}</span>
+          <span style={{ ...retroFont, color:"#fff", fontWeight:800, fontSize:14, display:"flex", alignItems:"center", gap:5 }}>
+            OUTS
+            <span style={{ width:12, height:12, background: outs>=1?REDD:"#3a4366", display:"inline-block", border:"1px solid #0d1326" }} />
+            <span style={{ width:12, height:12, background: outs>=2?REDD:"#3a4366", display:"inline-block", border:"1px solid #0d1326" }} />
+          </span>
+          <span style={{ ...retroFont, color:"#fff", fontWeight:800, fontSize: half==="top"?14:12 }}>
+            THEM <span style={{color:GOLD}}>{runs}</span>{half==="bottom" && <> · YOU <span style={{color:GOLD}}>{runsFor}</span></>}
+          </span>
+          <button onClick={quit} className="press" style={{ background:"#1c2750", color:"#aebadf",
+            border:"2px solid #3a4a8c", borderRadius:7, fontFamily:"inherit", fontWeight:800,
+            fontSize:11, padding:"3px 8px", cursor:"pointer", ...retroFont }}>QUIT</button>
+        </div>
+
+        {/* FIELD */}
+        <div style={{ position:"relative" }}>
+          <svg viewBox="0 0 130 148" style={{ width:"100%", display:"block", imageRendering:"pixelated", borderRadius:6, touchAction:"manipulation" }}
+            shapeRendering="crispEdges" onPointerDown={tapField}>
+            {grassBands.map((y,i)=>(
+              <rect key={i} x="0" y={y-14} width="130" height="9" fill={i%2===0?"#3e9e4f":"#348a44"} />
+            ))}
+            <rect x="0" y="0" width="130" height="8" fill="#141b33" />
+            {crowd.map((d,i)=>(<rect key={i} x={d.x} y={d.y-14} width="1" height="1" fill={d.c} />))}
+            <rect x="0" y="8" width="130" height="5" fill="#1f6b35" />
+            <rect x="0" y="8" width="130" height="1" fill={LINE2} />
+            <line x1="65" y1="120" x2="129" y2="65" stroke={LINE2} strokeWidth="1" />
+            <line x1="65" y1="120" x2="1" y2="65" stroke={LINE2} strokeWidth="1" />
+            {[["home","first"],["first","second"],["second","third"],["third","home"]].map(([a,b],i)=>(
+              <line key={i} x1={RBASES[a].x} y1={RBASES[a].y-14} x2={RBASES[b].x} y2={RBASES[b].y-14}
+                stroke="#c98f4e" strokeWidth="6" />
+            ))}
+            <ellipse cx="65" cy="118" rx="16" ry="7" fill="#c98f4e" />
+            <ellipse cx="64" cy="88.5" rx="5" ry="3.5" fill="#b87e40" />
+            {Object.entries(RBASES).map(([k,p])=>(
+              <rect key={k} x={p.x-2} y={p.y-16} width="4" height="4" fill={goldBases ? GOLD : LINE2} stroke={goldBases ? "#8a6411" : "none"} strokeWidth={goldBases ? 0.4 : 0} />
+            ))}
+            <g ref={fieldersGroupRef}>
+              {Object.entries(RPOS).map(([k,p])=>(
+                <g key={k} data-mover="1" ref={sc && k===sc.position ? fieldGRef : (k===coverPos ? coverGRef : undefined)}>
+                  <PixGuy x={p.x} y={p.y-14} jersey={half==="top"?TEAM:"#d2d2d7"} cap={half==="top"?GOLD:REDD} ball={false} />
+                </g>
+              ))}
+            </g>
+            <PixGuy x={half==="bottom" && batSide==="L" ? 71 : 58} y={114}
+              batColor={half==="top"?null:batSkin}
+              jersey={half==="top"?"#d2d2d7":TEAM} cap={half==="top"?REDD:GOLD} bat
+              lefty={half==="bottom" && batSide==="L"} />
+            {runners.first && <PixGuy x={RBASES.first.x} y={RBASES.first.y-17} jersey={half==="top"?"#d2d2d7":TEAM} cap={half==="top"?REDD:GOLD} />}
+            {runners.second && <PixGuy x={RBASES.second.x} y={RBASES.second.y-17} jersey={half==="top"?"#d2d2d7":TEAM} cap={half==="top"?REDD:GOLD} />}
+            {runners.third && <PixGuy x={RBASES.third.x} y={RBASES.third.y-17} jersey={half==="top"?"#d2d2d7":TEAM} cap={half==="top"?REDD:GOLD} />}
+            {/* shrinking field-timing ring at the ball's landing spot */}
+            {sc && ballDest && <circle ref={ringRef} cx={ballDest.x} cy={ballDest.y-14} r="16"
+              fill="none" stroke={GOLD} strokeWidth="1.6" opacity="0" />}
+            {/* ball */}
+            <rect ref={ballRef} width="2.6" height="2.6" fill="#ffffff" opacity="0" />
+            {(phase==="question" || phase==="odecide") && <rect x="0" y="0" width="130" height="148" fill="#0c1230" opacity="0.45" pointerEvents="none" />}
+            {/* pop-up: glowing candidate fielders (who calls it?) */}
+            {phase==="question" && playKindRef.current==="popup" && play && play.cands.map((k)=>{
+              const p = RPOS[k];
+              return (
+                <g key={k} onClick={(e)=>{ e.stopPropagation(); tapFielder(k); }} style={{ cursor:"pointer" }}>
+                  <rect x={p.x-9} y={p.y-26} width="18" height="20" fill="rgba(0,0,0,0.01)" />
+                  <rect x={p.x-5} y={p.y-22} width="10" height="12" fill="none" stroke={GOLD} strokeWidth="1.4">
+                    <animate attributeName="opacity" values="1;0.35;1" dur="0.9s" repeatCount="indefinite" />
+                  </rect>
+                </g>
+              );
+            })}
+            {/* freeze base targets */}
+            {phase==="question" && playKindRef.current!=="popup" && sc && RBASE_KEYS.map((b)=>{
+              const p = RBASES[b];
+              return (
+                <g key={b} onClick={(e)=>{ e.stopPropagation(); tapBase(b); }} style={{ cursor:"pointer" }}>
+                  <rect x={p.x-9} y={p.y-23} width="18" height="18" fill="rgba(0,0,0,0.01)" />
+                  <rect x={p.x-5} y={p.y-19} width="10" height="10" fill="none" stroke={GOLD} strokeWidth="1.4">
+                    <animate attributeName="opacity" values="1;0.35;1" dur="0.9s" repeatCount="indefinite" />
+                  </rect>
+                </g>
+              );
+            })}
+          </svg>
+
+          {/* FREEZE banner */}
+          {(phase==="question" || phase==="odecide") && (
+            <div style={{ position:"absolute", top:"16%", left:0, right:0, textAlign:"center", pointerEvents:"none" }}>
+              <span style={{ ...retroFont, fontSize:34, fontWeight:800, color:GOLD, textShadow:pixShadow }}>FREEZE!</span>
+            </div>
+          )}
+          {/* result banner */}
+          {phase==="result" && resultInfo && (
+            <div style={{ position:"absolute", top:"30%", left:0, right:0, textAlign:"center", pointerEvents:"none" }}>
+              <span style={{ ...retroFont, fontSize: resultInfo.big.length>14?22:30, fontWeight:800,
+                color: resultInfo.good?GOLD:"#ff7b6b", textShadow:pixShadow }}>{resultInfo.big}</span>
+            </div>
+          )}
+          {/* field-phase hint */}
+          {phase==="field" && (
+            <div style={{ position:"absolute", bottom:8, left:0, right:0, textAlign:"center", pointerEvents:"none" }}>
+              <span style={{ ...retroFont, fontSize:15, fontWeight:800, color:"#fff", textShadow:pixShadow }}>
+                TAP TO FIELD IT!
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* DIALOG / CONTROLS AREA */}
+        <div style={{ marginTop:8, minHeight:118 }}>
+          {phase==="intro" && (
+            <div style={{ background:"#101a38", border:"2px solid "+GOLD, borderRadius:10, padding:"14px 12px", textAlign:"center" }}>
+              <div style={{ ...retroFont, color:GOLD, fontWeight:800, fontSize:18, marginBottom:6 }}>TOP OF THE 1ST</div>
+              <div style={{ color:"#dbe3ff", fontSize:14, fontWeight:600, lineHeight:1.45, marginBottom:12 }}>
+                A full inning, both ways! TOP: you're in the field — when the ball is hit, time FREEZES.
+                Call the play, then make it. BOTTOM: grab a bat — your runners look to YOU for GO or HOLD.
+                Most runs after one inning wins!
+              </div>
+              <button onClick={startGame} className="press" style={{ background:GOLD, color:"#1c1500",
+                border:"none", borderRadius:10, fontFamily:"inherit", fontWeight:800, fontSize:18,
+                padding:"12px 26px", cursor:"pointer", boxShadow:"0 4px 0 #8a6411", ...retroFont }}>
+                ▶ PLAY BALL!
+              </button>
+            </div>
+          )}
+
+          {phase==="question" && sc && (
+            <div style={{ background:"#101a38", border:"2px solid "+GOLD, borderRadius:10, padding:"10px 12px" }}>
+              <div style={{ display:"flex", gap:9, alignItems:"flex-start" }}>
+                <div style={{ flex:"0 0 auto", width:34, height:34, borderRadius:"50%", background:"#f6f6f6",
+                  border:"2px solid #2a2a3c", position:"relative" }}>
+                  <div style={{ position:"absolute", left:9, top:11, width:4, height:4, background:"#20202e", borderRadius:"50%" }} />
+                  <div style={{ position:"absolute", right:9, top:11, width:4, height:4, background:"#20202e", borderRadius:"50%" }} />
+                  <div style={{ position:"absolute", left:11, bottom:7, width:9, height:4, borderBottom:"2px solid #c84444", borderRadius:"0 0 8px 8px" }} />
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ ...retroFont, color:GOLD, fontWeight:800, fontSize:12, marginBottom:2 }}>
+                    {playKindRef.current==="popup" ? "POP-UP PRIORITY!" : `YOU'RE THE ${expand(sc.position).toUpperCase()}!`}
+                  </div>
+                  <div style={{ color:"#fff", fontWeight:700, fontSize:14.5, lineHeight:1.4 }}>
+                    {expand(sc.prompt)}
+                  </div>
+                  <div style={{ ...retroFont, color: wrongHint ? "#ffb4a8" : "#9fb0e8", fontWeight:700, fontSize:11.5, marginTop:6 }}>
+                    {wrongHint ? `HINT: ${wrongHint}` : (playKindRef.current==="popup" ? "TAP THE FIELDER WHO CALLS IT" : "TAP A GLOWING BASE TO CALL THE PLAY")}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {phase==="swing" && (
+            <div style={{ background:"#101a38", border:"2px solid "+GOLD, borderRadius:10, padding:"11px 12px", textAlign:"center" }}>
+              <div style={{ ...retroFont, color:"#fff", fontWeight:800, fontSize:15, marginBottom:2 }}>
+                HERE'S THE PITCH…
+              </div>
+              <div style={{ ...retroFont, color: swingMsg ? "#ffb4a8" : "#9fb0e8", fontWeight:700, fontSize:11.5, marginBottom:9 }}>
+                {swingMsg || (batSide==="R" ? "EARLY PULLS LEFT · LATE GOES RIGHT · PERFECT = 💥" : "EARLY PULLS RIGHT · LATE GOES LEFT · PERFECT = 💥")}
+              </div>
+              <button onPointerDown={swingNow} className="press" style={{ background:GOLD, color:"#1c1500",
+                border:"none", borderRadius:10, fontFamily:"inherit", fontWeight:800, fontSize:19,
+                padding:"13px 24px", cursor:"pointer", boxShadow:"0 4px 0 #8a6411", width:"100%",
+                touchAction:"manipulation", letterSpacing:0.5, textTransform:"uppercase" }}>
+                💥 SWING!
+              </button>
+            </div>
+          )}
+
+          {phase==="odecide" && play && (
+            <div style={{ background:"#101a38", border:"2px solid "+GOLD, borderRadius:10, padding:"10px 12px" }}>
+              <div style={{ ...retroFont, color:GOLD, fontWeight:800, fontSize:12, marginBottom:4 }}>
+                YOU'RE THE BASERUNNER!
+              </div>
+              <div style={{ color:"#fff", fontWeight:700, fontSize:14.5, lineHeight:1.4, marginBottom:8 }}>
+                {expand(play.prompt)}
+              </div>
+              <div style={{ display:"flex", gap:10 }}>
+                <button onClick={() => decide("go")} className="press" style={{ flex:1, background:"#2f9e44",
+                  color:"#fff", border:"none", borderRadius:10, fontFamily:"inherit", fontWeight:800,
+                  fontSize:18, padding:"12px 0", cursor:"pointer", boxShadow:"0 4px 0 #1d6b2c",
+                  letterSpacing:0.5, textTransform:"uppercase" }}>
+                  🟢 GO!
+                </button>
+                <button onClick={() => decide("hold")} className="press" style={{ flex:1, background:"#e8590c",
+                  color:"#fff", border:"none", borderRadius:10, fontFamily:"inherit", fontWeight:800,
+                  fontSize:18, padding:"12px 0", cursor:"pointer", boxShadow:"0 4px 0 #9c3a06",
+                  letterSpacing:0.5, textTransform:"uppercase" }}>
+                  ✋ HOLD!
+                </button>
+              </div>
+              <div style={{ ...retroFont, color: wrongHint ? "#ffb4a8" : "#9fb0e8", fontWeight:700, fontSize:11.5, marginTop:7, textAlign:"center" }}>
+                {wrongHint ? `HINT: ${wrongHint}` : "MAKE THE CALL, RUNNER!"}
+              </div>
+            </div>
+          )}
+
+          {phase==="nextInning" && (
+            <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column",
+              alignItems:"center", justifyContent:"center", textAlign:"center", padding:"0 26px",
+              background:"rgba(8,12,28,0.86)", zIndex:5 }}>
+              <div style={{ ...retroFont, color:GOLD, fontSize:26, fontWeight:800, marginBottom:10,
+                textShadow:"0 3px 0 rgba(0,0,0,0.5)" }}>
+                ⚾ INNING {inning}!
+              </div>
+              <div style={{ color:"#dbe3ff", fontSize:14.5, fontWeight:600, lineHeight:1.5 }}>
+                Score so far: <b style={{color:GOLD}}>YOU {runsFor}</b> — <b style={{color:GOLD}}>THEM {runs}</b>. Grab your glove — back on defense!
+              </div>
+            </div>
+          )}
+
+          {phase==="switch" && (
+            <div style={{ background:"#101a38", border:"2px solid "+GOLD, borderRadius:10, padding:"16px 12px", textAlign:"center" }}>
+              <div style={{ ...retroFont, color:GOLD, fontWeight:800, fontSize:20, marginBottom:4 }}>
+                SIDE RETIRED!
+              </div>
+              <div style={{ color:"#dbe3ff", fontSize:14.5, fontWeight:600, lineHeight:1.5 }}>
+                You held them to <b style={{color:GOLD}}>{runs}</b> {runs===1?"run":"runs"}. Now grab a bat — <b style={{color:GOLD}}>YOU'RE UP!</b>
+              </div>
+            </div>
+          )}
+
+          {phase==="throw" && (
+            <div style={{ background:"#101a38", border:"2px solid "+GOLD, borderRadius:10, padding:"10px 12px", textAlign:"center" }}>
+              <div style={{ ...retroFont, color:"#fff", fontWeight:800, fontSize:15, marginBottom:2 }}>
+                {playKindRef.current==="popup" ? "HE'S CALLING IT — CATCH IT!"
+                  : playKindRef.current==="run" ? "DIG, DIG, DIG!"
+                  : stepOnRef.current ? "FIELD IT CLEAN!" : (bobble ? "BOBBLED IT — HURRY!" : "TAP TO THROW!")}
+              </div>
+              <div style={{ ...retroFont, color:GOLD, fontWeight:800, fontSize:12, marginBottom:8 }}>
+                {playKindRef.current==="popup" ? "HIT THE GREEN TO SQUEEZE IT!"
+                  : playKindRef.current==="run" ? `BEAT THE THROW TO ${RNAMES[chosen]}!`
+                  : stepOnRef.current ? `STEP ON ${RNAMES[chosen]} — HIT THE GREEN!` : `TARGET: ${RNAMES[chosen]} BASE`}
+              </div>
+              <div onPointerDown={tapThrow} style={{ position:"relative", height:30, background:"#0d1326",
+                border:"2px solid "+LINE2, borderRadius:6, cursor:"pointer", overflow:"hidden", touchAction:"manipulation" }}>
+                <div style={{ position:"absolute", top:2, bottom:2, left:"6%",  width:"19%", background:REDD }} />
+                <div style={{ position:"absolute", top:2, bottom:2, left:"25%", width:"15%", background:GOLD }} />
+                <div style={{ position:"absolute", top:2, bottom:2, left:"40%", width:"22%", background:"#46be5a" }} />
+                <div style={{ position:"absolute", top:2, bottom:2, left:"62%", width:"15%", background:GOLD }} />
+                <div style={{ position:"absolute", top:2, bottom:2, left:"77%", width:"17%", background:REDD }} />
+                <div ref={needleRef} style={{ position:"absolute", top:-2, bottom:-2, left:"50%", width:4, background:"#fff",
+                  boxShadow:"0 0 0 1px #0d1326" }} />
+              </div>
+              <button onPointerDown={tapThrow} className="press" style={{ marginTop:9, background:GOLD, color:"#1c1500",
+                border:"none", borderRadius:10, fontFamily:"inherit", fontWeight:800, fontSize:16,
+                padding:"10px 24px", cursor:"pointer", boxShadow:"0 4px 0 #8a6411", width:"100%", touchAction:"manipulation", ...retroFont }}>
+                {playKindRef.current==="popup" ? "🧤 CATCH IT!" : playKindRef.current==="run" ? "🏃 RUN!" : stepOnRef.current ? "🧤 GLOVE IT!" : "💪 THROW!"}
+              </button>
+            </div>
+          )}
+
+          {phase==="newbatter" && (
+            <div style={{ background:"#101a38", border:"2px solid "+GOLD, borderRadius:10, padding:"16px 12px", textAlign:"center" }}>
+              <div style={{ ...retroFont, color:GOLD, fontWeight:800, fontSize:20 }}>
+                {half==="top" ? "⚾ NEXT BATTER…" : `⚾ YOU'RE UP! (${batSide==="R"?"RIGHTY":"LEFTY"})`}
+              </div>
+              <div style={{ ...retroFont, color:"#9fb0e8", fontWeight:700, fontSize:12, marginTop:4 }}>
+                {outs===0 ? "NO OUTS" : outs===1 ? "ONE OUT" : "TWO OUTS"} · GET READY!
+              </div>
+            </div>
+          )}
+
+          {(phase==="hit" || phase==="field" || phase==="flight") && (
+            <div style={{ background:"#101a38", border:"2px solid #283a78", borderRadius:10, padding:"12px", textAlign:"center" }}>
+              <div style={{ ...retroFont, color:"#9fb0e8", fontWeight:800, fontSize:13 }}>
+                {phase==="field" ? "FIELD THE BALL — TAP WHEN THE RING IS SMALL!" : phase==="flight" ? "MAKING THE PLAY…" : "HERE COMES THE PITCH…"}
+              </div>
+            </div>
+          )}
+
+          {phase==="result" && resultInfo && (
+            <div style={{ background:"#101a38", border:"2px solid "+(resultInfo.good?GOLD:"#a4452f"), borderRadius:10, padding:"11px 12px" }}>
+              <div style={{ color:"#fff", fontWeight:700, fontSize:14, lineHeight:1.45 }}>{resultInfo.line}</div>
+            </div>
+          )}
+
+          {phase==="over" && (
+            <div style={{ background:"#101a38", border:"2px solid "+GOLD, borderRadius:10, padding:"14px 12px", textAlign:"center", position:"relative", overflow:"hidden" }}>
+              {winFx && runsFor > runs && Array.from({ length: 30 }).map((_, i) => {
+                const colors = ["#fde047","#fb923c","#4ade80","#60a5fa","#f472b6","#ffffff"];
+                return <div key={"wc"+i} style={{ position:"absolute", top:"-6%", left:`${(i*89)%100}%`,
+                  width: 5+(i%3)*3, height: (5+(i%3)*3)*1.7, background: colors[i%colors.length],
+                  borderRadius: 2, pointerEvents:"none",
+                  animation:`confettifall ${1.3+((i*37)%60)/100}s ${(i%8)*0.1}s ease-in forwards` }} />;
+              })}
+              <div style={{ ...retroFont, color:GOLD, fontWeight:800, fontSize:22, marginBottom:4 }}>
+                {runsFor>runs ? "🏆 YOU WIN!" : runsFor<runs ? "TOUGH LOSS!" : "TIE GAME!"}
+              </div>
+              <div style={{ color:"#dbe3ff", fontSize:14.5, fontWeight:600, lineHeight:1.5, marginBottom:12 }}>
+                Final score: <b style={{color:GOLD}}>YOU {runsFor} — THEM {runs}</b>.
+                You earned <b style={{color:GOLD}}>⭐ {starsEarned}</b> toward your rank — and <b style={{color:GOLD}}>🌻 {seedsRef.current}</b> Seeds for The Dugout!
+              </div>
+              <button onClick={() => { sounds.click && sounds.click();
+                stateRef.current={half:"top",outs:0,runs:0,runsFor:0,runners:{first:false,second:false,third:false}};
+                batters.current=0; starsRef.current=0; seedsRef.current=0; inningRef.current=1; setInning(1); setHalf("top"); setOuts(0); setRuns(0); setRunsFor(0);
+                setRunners({first:false,second:false,third:false});
+                setStarsEarned(0); setBallDest(null); setCoverPos(null); resetMovers(); setPhase("intro"); }} className="press"
+                style={{ background:GOLD, color:"#1c1500", border:"none", borderRadius:10, fontFamily:"inherit",
+                  fontWeight:800, fontSize:16, padding:"11px 22px", cursor:"pointer",
+                  boxShadow:"0 4px 0 #8a6411", marginRight:8, ...retroFont }}>
+                🔄 PLAY AGAIN
+              </button>
+              <button onClick={quit} className="press" style={{ background:"#1c2750", color:"#aebadf",
+                border:"2px solid #3a4a8c", borderRadius:10, fontFamily:"inherit", fontWeight:800,
+                fontSize:16, padding:"11px 22px", cursor:"pointer", ...retroFont }}>
+                EXIT
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -3502,6 +6089,23 @@ function Cutaway({ phrase, img, color }) {
         animation: "speedlines 0.5s linear infinite" }} />
       <div style={{ position: "absolute", width: 130, height: 130, borderRadius: "50%",
         background: "#fff", filter: "blur(10px)", animation: "flashpop 0.6s ease-out forwards" }} />
+      {/* 🎉 confetti rain */}
+      {Array.from({ length: 34 }).map((_, i) => {
+        const colors = ["#fbbf24","#ef4444","#3b82f6","#22c55e","#e879f9","#ffffff"];
+        const left = (i * 97) % 100, delay = (i % 7) * 0.06, dur = 0.95 + ((i * 53) % 50) / 100;
+        const w = 5 + (i % 3) * 3;
+        return <div key={"cf"+i} style={{ position: "absolute", top: "-8%", left: `${left}%`,
+          width: w, height: w * 1.7, background: colors[i % colors.length], borderRadius: 2,
+          animation: `confettifall ${dur}s ${delay}s ease-in forwards` }} />;
+      })}
+      {/* ✨ starburst ring */}
+      {Array.from({ length: 12 }).map((_, i) => {
+        const a = (i / 12) * Math.PI * 2;
+        return <div key={"bs"+i} style={{ position: "absolute", width: 9, height: 9, borderRadius: "50%",
+          background: i % 2 ? "#fde68a" : "#ffffff",
+          "--dx": `${Math.cos(a) * 130}px`, "--dy": `${Math.sin(a) * 130}px`,
+          animation: "fwparticle 0.75s ease-out forwards" }} />;
+      })}
       {img && (
         <img src={img} alt="" width={154} height={154}
           style={{ position: "relative", objectFit: "contain",
@@ -3521,7 +6125,53 @@ function Cutaway({ phrase, img, color }) {
   );
 }
 
-function Header({ meta, idx, total, goHome, soundOn, toggleSound }) {
+function LevelUpFlash({ rank }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 95, pointerEvents: "none",
+      display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "absolute", inset: 0,
+        background: "radial-gradient(circle at 50% 40%, rgba(124,58,237,0.55) 0%, rgba(8,12,24,0.84) 72%)" }} />
+      {/* 🎊 confetti */}
+      {Array.from({ length: 44 }).map((_, i) => {
+        const colors = ["#fbbf24","#ef4444","#3b82f6","#22c55e","#e879f9","#ffffff"];
+        const left = (i * 89) % 100, delay = (i % 8) * 0.07, dur = 1.2 + ((i * 37) % 60) / 100;
+        const w = 5 + (i % 3) * 3;
+        return <div key={"c"+i} style={{ position: "absolute", top: "-8%", left: `${left}%`,
+          width: w, height: w * 1.7, background: colors[i % colors.length], borderRadius: 2,
+          animation: `confettifall ${dur}s ${delay}s ease-in forwards` }} />;
+      })}
+      {/* 🎈 balloons */}
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={"b"+i} style={{ position: "absolute", bottom: "-12%", left: `${(i * 13 + 4) % 92}%`,
+          fontSize: 34, animation: `balloonup ${2.2 + (i % 4) * 0.25}s ${(i % 5) * 0.14}s ease-in forwards` }}>🎈</div>
+      ))}
+      {/* 🎆 fireworks bursts */}
+      {[[18,26,"#fbbf24"],[80,22,"#f87171"],[50,12,"#60a5fa"]].map(([bx,by,col], b) =>
+        Array.from({ length: 10 }).map((_, i) => {
+          const a = (i / 10) * Math.PI * 2;
+          return <div key={`f${b}-${i}`} style={{ position: "absolute", left: `${bx}%`, top: `${by}%`,
+            width: 7, height: 7, borderRadius: "50%", background: col,
+            "--dx": `${Math.cos(a) * 72}px`, "--dy": `${Math.sin(a) * 72}px`,
+            animation: `fwparticle 0.95s ${0.18 * b}s ease-out forwards` }} />;
+        })
+      )}
+      <div style={{ position: "relative", textAlign: "center" }}>
+        <div style={{ fontSize: 66, animation: "pop 0.5s ease", filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.45))" }}>{rank.emoji}</div>
+        <div style={{ fontSize: 48, fontWeight: 800, color: "#fde047", letterSpacing: 1,
+          textShadow: "0 4px 0 rgba(0,0,0,0.35), 0 0 28px rgba(253,224,71,0.6)",
+          animation: "hrtext 0.6s ease both" }}>
+          LEVEL UP!
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginTop: 6,
+          textShadow: "0 2px 0 rgba(0,0,0,0.4)" }}>
+          You're now a {rank.name}!
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Header({ meta, idx, total, goHome, soundOn, toggleSound, onReplay }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
       padding: "10px 12px", background: meta.color }}>
@@ -3529,6 +6179,14 @@ function Header({ meta, idx, total, goHome, soundOn, toggleSound }) {
         background: "rgba(255,255,255,.22)", color: "#fff", border: "none",
         fontSize: 15, fontWeight: 700, padding: "6px 12px", borderRadius: 12,
         cursor: "pointer", fontFamily: "inherit" }}>🏠</button>
+      {onReplay && (
+        <button onClick={onReplay} title="Repeat the question" style={{
+          background: "rgba(255,255,255,.22)", color: "#fff", border: "none",
+          fontSize: 12.5, fontWeight: 800, padding: "7px 10px", borderRadius: 12,
+          cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: 14 }}>🔁</span> Repeat
+        </button>
+      )}
       <div style={{ textAlign: "center", color: "#fff" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontWeight: 700, fontSize: 16, lineHeight: 1 }}>
           {meta.img
@@ -4015,6 +6673,8 @@ html, body, #root { height: 100%; margin: 0; }
 @keyframes scenezoom { 0% { transform: scale(1) } 100% { transform: scale(1.06) } }
 @keyframes cutin { 0% { transform: translateX(-40%) scale(0.5) rotate(-12deg); opacity: 0 } 40% { transform: translateX(6%) scale(1.18) rotate(4deg); opacity: 1 } 70% { transform: translateX(0) scale(1.05) rotate(0deg) } 100% { transform: translateX(0) scale(1.08) rotate(0deg); opacity: 1 } }
 @keyframes speedlines { 0% { background-position: 0 0 } 100% { background-position: 120px 0 } }
+@keyframes confettifall { 0% { transform: translateY(-4vh) rotate(0deg); opacity: 1 } 100% { transform: translateY(105vh) rotate(560deg); opacity: 0.9 } }
+@keyframes balloonup { 0% { transform: translateY(0) rotate(-4deg) } 100% { transform: translateY(-125vh) rotate(6deg) } }
 @keyframes flashpop { 0% { transform: scale(0.3); opacity: 0.9 } 100% { transform: scale(2.4); opacity: 0 } }
 @keyframes cutfade { 0%,80% { opacity: 1 } 100% { opacity: 0 } }
 @keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-7px) } }
